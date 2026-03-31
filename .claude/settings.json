@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash(python *)",
+      "Bash(ruff *)",
+      "Bash(pip list)",
+      "Bash(pip show *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git push origin main)",
+      "Bash(git push origin master)",
+      "Bash(del /s /q *)"
+    ]
+  },
+  "customInstructions": "Respond in Spanish. Follow rules in .claude/rules/. Use ASCII only in console output (cp1252). See CLAUDE.md for full BSM1 project context."
+}

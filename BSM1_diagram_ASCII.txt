@@ -1,0 +1,25 @@
+BSM1 PLANT DIAGRAM (ASCII)
+================================================================================
+
+                  Q_intr = 55338 m3/d (3Q)
+          .----------------------------------------------.
+          |                                              |
+          v                                              |
+  Q --->[A1]--->[A2]--->[O1]--->[O2]--->[O3]---------->[C1]---> Effluent
+  18446   ^   1000m3  1000m3  1333m3  1333m3  1333m3    |  18061 m3/d
+  m3/d    |   anoxic  anoxic  KLa=240 KLa=240 KLa=84   |
+          |                                              |
+          '------------ RAS = 18446 m3/d (1Q) ----------'
+                                                         |
+                                              WAS = 385 m3/d
+
+Reactors:
+  A1, A2: Anoxic zones (heterotrophic denitrification)
+  O1, O2, O3: Aerobic zones (nitrification + COD removal)
+  C1: Secondary clarifier (FlatBottomCircularClarifier - 10 layers)
+
+Flows:
+  Q: Influent (18,446 m3/d)
+  Q_intr: Internal recirculation (55,338 m3/d = 3Q from O3 to A1)
+  RAS: Return activated sludge (18,446 m3/d = 1Q from C1 to A1)
+  WAS: Waste activated sludge purge (385 m3/d)

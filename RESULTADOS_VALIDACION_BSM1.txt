@@ -1,0 +1,152 @@
+================================================================================
+        BSM1 VALIDATION REPORT - STEADY STATE + DYNAMIC
+================================================================================
+
+Date: 2026-03-25 09:50:50
+Reference: IWA Matlab/Simulink (Dr. Ulf Jeppsson, Lund University, 2008)
+Tolerance: +/- 5%
+Software: QSDsan 1.3.0 + EXPOsan 1.4.3
+Python: 3.13.0
+Platform: win32
+
+================================================================================
+  1. PLANT CONFIGURATION (BSM1)
+================================================================================
+
+  Model: ASM1 (Activated Sludge Model No. 1 - IWA)
+  System: BSM1 (Benchmark Simulation Model No. 1)
+
+  PLANT DIAGRAM:
+
+                  Q_intr = 55338 m3/d (3Q)
+          .----------------------------------------------.
+          |                                              |
+          v                                              |
+  Q --->[A1]--->[A2]--->[O1]--->[O2]--->[O3]---------->[C1]---> Effluent
+  18446   ^   1000m3  1000m3  1333m3  1333m3  1333m3    |  18061 m3/d
+  m3/d    |   anoxic  anoxic  KLa=240 KLa=240 KLa=84   |
+          |                                              |
+          '------------ RAS = 18446 m3/d (1Q) ----------'
+                                                         |
+                                              WAS = 385 m3/d
+
+  Clarifier: A = 1500 m2, h = 4 m, V = 6000 m3
+             10 layers, feed layer = 6 (from bottom)
+
+  [Graphical diagram: BSM1_system_diagram.html (generated via sys.diagram())]
+
+  INFLUENT (constant, dry weather):
+  Comp.         Value    Comp.         Value
+  ---------------------------------------------
+  S_S         69.50      X_BH        28.17
+  X_S        202.32      X_I         51.20
+  S_NH        31.56      S_I         30.00
+  S_ND         6.95      X_ND        10.59
+  S_ALK       84.00
+
+================================================================================
+  2. STEADY-STATE VALIDATION
+================================================================================
+
+  Simulation: 200 days, constant input, method: BDF
+  Compute time: 2.50 seconds
+
+  2.1 Component-by-component comparison
+  -----------------------------------------------------------------
+  Comp.        Obtained     IWA Ref.     Err%   Status
+  -----------------------------------------------------------------
+  S_I        30.000 mg/L    30.000 mg/L    -0.00%  PASS
+  S_S         0.890 mg/L     0.889 mg/L    +0.08%  PASS
+  X_I         4.392 mg/L     4.392 mg/L    -0.00%  PASS
+  X_S         0.188 mg/L     0.188 mg/L    +0.26%  PASS
+  X_BH        9.782 mg/L     9.782 mg/L    -0.01%  PASS
+  X_BA        0.572 mg/L     0.573 mg/L    -0.09%  PASS
+  X_P         1.728 mg/L     1.728 mg/L    +0.02%  PASS
+  S_O         0.490 mg/L     0.491 mg/L    -0.16%  PASS
+  S_NO       10.387 mg/L    10.415 mg/L    -0.26%  PASS
+  S_NH        1.736 mg/L     1.733 mg/L    +0.18%  PASS
+  S_ND        0.688 mg/L     0.688 mg/L    +0.05%  PASS
+  X_ND        0.013 mg/L     0.013 mg/L    +3.72%  PASS
+  S_ALK       4.127 mol/m3    4.126 mol/m3   +0.01%  PASS
+  TSS        12.507 mg/L    12.497 mg/L    +0.08%  PASS
+  -----------------------------------------------------------------
+  TOTAL: 14/14 PASS (within +/-5%)
+
+  2.2 Aggregate effluent parameters
+  ---------------------------------------------
+  Parameter         Obtained      Limit
+  ---------------------------------------------
+  COD (mg/L)         47.55      < 100
+  TN (mg/L)          14.02       < 18
+  TSS (mg/L)        12.507       < 30
+  BOD5 (mg/L)        6.893       < 10
+  SRT (days)          9.14      ~9.14
+  Q_eff (m3/d)     18061.0      18061
+
+================================================================================
+  3. DYNAMIC VALIDATION (Dry Weather)
+================================================================================
+
+  STATUS: Not available in current QSDsan/EXPOsan configuration.
+
+  The FlatBottomCircularClarifier model produces numerical instability
+  when coupled with DynamicInfluent in the BSM1-CSTR configuration.
+  This is a known limitation of the ODE solver with time-varying
+  boundary conditions and the 10-layer settler model.
+
+  3.1 IWA dynamic reference values (for future validation)
+  -------------------------------------------------------
+  Parameter        IWA Ref.      Limit
+  -------------------------------------------------------
+  COD            48.296      < 100 mg/L
+  S_NH            4.759      < 4 mg/L
+  S_NO            8.824      -
+  TN             15.569      < 18 mg/L
+  TSS            12.992      < 30 mg/L
+  BOD5            2.775      < 10 mg/L
+
+  NOTE: S_NH = 4.759 > 4.0 mg/L is a KNOWN VIOLATION in BSM1 open-loop.
+  This is the expected and correct behavior.
+
+  3.2 Alternatives for dynamic validation
+    * Use Matlab/Simulink BSM1 implementation (reference standard)
+    * Use QSDsan PFR model (implicit internal recirculation)
+    * Wait for QSDsan clarifier model updates
+
+================================================================================
+  4. VALIDATION CHECKLIST (as per BSM1_referencia_IWA.md)
+================================================================================
+
+  STEADY-STATE (tolerance +/-5%):
+    S_NH: 1.736  (range: 1.645 - 1.820)  -> OK
+    S_NO: 10.387  (range: 9.894 - 10.936)  -> OK
+    TSS: 12.507  (range: 11.870 - 13.120)  -> OK
+    SRT: 9.14  (range: 6.95 - 9.60)  -> OK
+
+  DYNAMIC (IWA limits - reference only, not simulated):
+    COD (ref): 48.296 vs < 100 -> OK
+    S_NH (ref): 4.759 vs < 4 -> VIOLATION
+    TN (ref): 15.569 vs < 18 -> OK
+    TSS (ref): 12.992 vs < 30 -> OK
+    BOD5 (ref): 2.775 vs < 10 -> OK
+
+================================================================================
+  5. CONCLUSIONS
+================================================================================
+
+  STEADY-STATE:
+    - 14/14 ASM1 components within +/-5% of IWA reference
+    - Simulation time: 2.50 seconds (BDF method)
+    - CONCLUSION: FULL VALIDATION PASSED
+
+  DYNAMIC (dry weather):
+    - Not simulated (numerical instability with DynamicInfluent + Clarifier)
+    - IWA reference values documented in section 3 for future validation
+    - Known S_NH violation (4.759 > 4.0) expected in open-loop BSM1
+
+================================================================================
+  Generated files:
+    1. RESULTADOS_VALIDACION_BSM1.txt (this report)
+    2. resultados_bsm1_ss_componentes.csv (SS components)
+    3. BSM1_system_diagram.html (plant diagram - PNG format)
+================================================================================
