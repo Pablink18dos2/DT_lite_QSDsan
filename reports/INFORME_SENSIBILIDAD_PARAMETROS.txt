@@ -1,0 +1,787 @@
+==============================================================================================================
+INFORME DE SENSIBILIDAD DE PARAMETROS - BSM1 (QSDsan v1.3.0 / EXPOsan v1.4.3)
+Benchmark Simulation Model No. 1 - Analisis estado estacionario (200 dias)
+Fecha: 2026-04-02 00:11
+Referencia IWA: Dr. Ulf Jeppsson, Lund University (2008). Tolerancia: +/- 5%%.
+==============================================================================================================
+
+INDICADORES CLAVE DE CALIDAD DE EFLUENTE (limites IWA dinamico):
+  COD total  < 100 mg COD/L   |  TN total < 18 mg N/L   |  BOD5 < 10 mg/L
+  SST        < 30  mg SS/L    |  S_NH > 4 mg N/L es VIOLACION ESPERADA en lazo abierto
+
+REFERENCIA IWA (estado estacionario, efluente):
+  Componente   Referencia  Unidades      
+  ----------------------------------------
+  S_I             30.0000  mg COD/L      
+  S_S              0.8890  mg COD/L      
+  X_I              4.3920  mg COD/L      
+  X_S              0.1880  mg COD/L      
+  X_BH             9.7820  mg COD/L      
+  X_BA             0.5730  mg COD/L      
+  X_P              1.7280  mg COD/L      
+  S_O              0.4910  mg O2/L       
+  S_NO            10.4150  mg N/L        
+  S_NH             1.7330  mg N/L        
+  S_ND             0.6880  mg N/L        
+  X_ND             0.0130  mg N/L        
+  S_ALK            4.1260  mol/m3        
+  TSS             12.4970  mg SS/L       
+
+AGREGADOS DE REFERENCIA IWA (estado estacionario):
+  COD total:  48.3 mg/L (din.) | TN total: 15.6 mg/L (din.) | BOD5: 2.8 mg/L (din.)
+  SST:        12.5 mg/L (SS)   | SRT especifico: 9.14 dias  | Q_eff: 18061 m3/d
+
+==============================================================================================================
+HALLAZGOS CLAVE DE SENSIBILIDAD (resumen ejecutivo para el experto)
+==============================================================================================================
+
+1. SRT (Q_WAS): Parametro mas critico. A SRT=4.5d la nitrificacion COLAPSA (S_NH=37.4 mg/L,
+   X_BA~0). El SRT simulado supera al de la formula simple (Q_WAS=192 -> SRT_sim=26d,
+   no 18d) porque la biomasa inerte (X_I, X_P) acumulada eleva la masa total del sistema.
+
+2. Temperatura: A 15C S_NH=7.6 mg/L (viola el limite de 4) y TN=17.5 mg/L (cerca del limite).
+   A 25C el sistema mejora notablemente (S_NH=0.6, TN=12.2). El BSM1 en lazo abierto
+   es marginalmente estable en condiciones invernales.
+
+3. DO (aireacion): A DO=3.5 mg/L la nitrificacion mejora (S_NH=0.6) pero S_NO=15.1 y
+   TN=17.6 mg/L (casi en el limite). Mas nitrificacion sin mas desnitrificacion eleva TN.
+   La aireacion excesiva en lazo abierto puede empeorar la calidad del efluente en TN.
+
+4. COD influente: COD bajo (200 mg/L) da TN=31.5 mg/L [!!] por deficit de carbono para
+   desnitrificacion (relacion C:N insuficiente -> S_NO=28.5 mg/L). COD alto (762 mg/L)
+   colapsa por sobrecarga (COD_eff=176, TSS=85, TN=39, BOD5=47 -- todos fuera de limite).
+
+5. Recirculacion interna (Q_intr): Comportamiento NO monotonico. S_NO minimo a 3Q (10.4),
+   sube a 6Q (11.1). A 6Q el caudal en A1 es 147568 m3/d (TRH=0.16 h), insuficiente para
+   denitrif icar aunque se recircule mas nitrato. Optimo operacional: 3Q.
+
+6. Caudal Q: A Q=0.5x TN=20.6 [!!] por exceso de nitrificacion relativa al COD disponible
+   (C:N bajo, denitrificacion carbon-limitada). A Q=2x la planta colapsa completamente.
+
+7. Altura del decantador: La calidad del efluente es identica para h=1m y h=10m, pero
+   el SRT varia (7.75 vs 11.92 dias) porque la altura cambia el volumen del blanket de
+   lodos almacenado. La altura NO afecta la separacion S/L (modelo Takacs) sino la
+   retencion de biomasa en el sistema. IMPORTANTE: CLAUDE.md seccion 23 requiere correccion.
+
+8. DBO5 con decantador pequeno (500 m2): DBO5=15.4 mg/L [!!] excede el limite de 10 mg/L
+   aunque TSS=28.6 esta justo por debajo de 30. La DBO5 incluye biomasa activa (X_BH)
+   que escapa del decantador sobrec argado. Un ingeniero podria subestimar el incumplimiento
+   si solo monitoriza SST.
+
+9. Invariancia confirmada: TSS_inf y DOsat no afectan el efluente (verificado).
+   DOsat modifica KLa (e.g., DOsat=6.5 -> KLa_O1=315 vs defecto 240) pero el punto de
+   operacion OUR=KLa*(DOsat-DO_ss) permanece constante.
+
+==============================================================================================================
+CASO BASE BSM1 (valores por defecto IWA)
+==============================================================================================================
+  PlantParameters sin modificar. Validacion de los 14 componentes IWA.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA           BASE
+  ----------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000
+  S_S           mg COD/L               0.8890         0.8897
+  X_I           mg COD/L               4.3920         4.3918
+  X_S           mg COD/L               0.1880         0.1885
+  X_BH          mg COD/L               9.7820         9.7815
+  X_BA          mg COD/L               0.5730         0.5725
+  X_P           mg COD/L               1.7280         1.7283
+  S_O           mg O2/L                0.4910         0.4907
+  S_NO          mg N/L                10.4150        10.3926
+  S_NH          mg N/L                 1.7330         1.7336
+  S_ND          mg N/L                 0.6880         0.6884
+  X_ND          mg N/L                 0.0130         0.0135
+  S_ALK         mol/m3                 4.1260         4.1260
+  TSS           mg SS/L               12.4970        12.5070
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA           BASE
+  ----------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     47.552 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0     14.024 [OK]
+  DBO5 efluente                 mg/L                   10.0      6.892 [OK]
+  SST efluente                  mg SS/L                30.0     12.507 [OK]
+  Caudal efluente               m3/d                     --  18061.000 
+  SRT especifico                dias                     --      9.140 
+
+  NOTAS DE ESCENARIOS:
+    [BASE]
+      Nota proceso: 
+      Solver: BDF  |  Tiempo: 8.6s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+
+==============================================================================================================
+GRUPO 1 -- EDAD DEL LODO: Q_WAS (m3/d)
+==============================================================================================================
+  El SRT es el parametro de diseno mas critico para la nitrificacion.
+  Los nitrificadores (X_BA) tienen mu_A=0.5 1/d. A SRT bajo son arrastrados
+  antes de reproducirse. A SRT alto se acumulan y nitrif ican bien.
+  Formula aprox: SRT ~ 385 * 9.14 / Q_WAS [dias]
+  NOTA: el SRT simulado puede ser mayor que la formula simple porque la biomasa
+  acumulada (X_I, X_P) crece con el SRT, reduciendo la fraccion activa.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  Q_WAS=192 (SR  Q_WAS=385 (SR  Q_WAS=855 (SR
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000        30.0000        30.0000
+  S_S           mg COD/L               0.8890         0.8159         0.8897         1.7106
+  X_I           mg COD/L               4.3920         7.6290         4.3918         3.0590
+  X_S           mg COD/L               0.1880         0.2183         0.1885         0.3507
+  X_BH          mg COD/L               9.7820        12.4182         9.7815         8.7813
+  X_BA          mg COD/L               0.5730         0.8903         0.5725         0.0003
+  X_P           mg COD/L               1.7280         4.0208         1.7283         0.7256
+  S_O           mg O2/L                0.4910         0.4991         0.4907         4.0444
+  S_NO          mg N/L                10.4150         9.3075        10.3926         0.0036
+  S_NH          mg N/L                 1.7330         0.3998         1.7336        37.3497
+  S_ND          mg N/L                 0.6880         0.6374         0.6884         1.1042
+  X_ND          mg N/L                 0.0130         0.0160         0.0135         0.0231
+  S_ALK         mol/m3                 4.1260         4.1083         4.1260         7.4135
+  TSS           mg SS/L               12.4970        18.8950        12.5070         9.7050
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  Q_WAS=192 (SR  Q_WAS=385 (SR  Q_WAS=855 (SR
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     55.993 [OK]     47.552 [OK]     44.628 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0     12.124 [OK]     14.024 [OK]     39.410 [!!]
+  DBO5 efluente                 mg/L                   10.0      8.631 [OK]      6.892 [OK]      6.591 [OK]
+  SST efluente                  mg SS/L                30.0     18.895 [OK]     12.507 [OK]      9.705 [OK]
+  Caudal efluente               m3/d                     --  18254.000   18061.000   17591.000 
+  SRT especifico                dias                     --     26.090       9.140       4.360 
+
+  NOTAS DE ESCENARIOS:
+    [Q_WAS=192 (SRT~18.3d)]
+      Nota proceso: Alto SRT -> nitrificacion robusta
+      Solver: BDF  |  Tiempo: 3.8s  |  Validacion IWA: 3/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 192.0 m3/d
+      Parametros modificados: Q_WAS=192
+    [Q_WAS=385 (SRT~9.1d)]
+      Nota proceso: Defecto BSM1
+      Solver: BDF  |  Tiempo: 2.0s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Q_WAS=385
+    [Q_WAS=855 (SRT~4.5d)]
+      Nota proceso: Bajo SRT -> riesgo lavado X_BA
+      Solver: BDF  |  Tiempo: 3.4s  |  Validacion IWA: 1/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 855.0 m3/d
+      Parametros modificados: Q_WAS=855
+
+==============================================================================================================
+GRUPO 2 -- CONTROL DE AIREACION: DO en reactores aerobios (mg O2/L)
+==============================================================================================================
+  El DO controla la transferencia de O2. KLa = OUR_ref / (DOsat - DO_setpoint).
+  Los nitrificadores tienen K_OA=0.4 mg/L; con DO < K_OA la cinetica colapsa.
+  Los valores de DO se aplican a los tres reactores aerobios (O1, O2, O3).
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  DO=0.3 en O1/  DO=1.72/2.43/  DO=3.5 en O1/
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000        30.0000        30.0000
+  S_S           mg COD/L               0.8890         1.0129         0.8897         0.8475
+  X_I           mg COD/L               4.3920         4.4026         4.3918         4.3898
+  X_S           mg COD/L               0.1880         0.2174         0.1885         0.1787
+  X_BH          mg COD/L               9.7820         9.7853         9.7815         9.7833
+  X_BA          mg COD/L               0.5730         0.4956         0.5725         0.5884
+  X_P           mg COD/L               1.7280         1.7254         1.7283         1.7293
+  S_O           mg O2/L                0.4910         0.2800         0.4907         2.5681
+  S_NO          mg N/L                10.4150         5.7804        10.3926        15.0603
+  S_NH          mg N/L                 1.7330         6.9389         1.7336         0.6481
+  S_ND          mg N/L                 0.6880         0.7327         0.6884         0.6880
+  X_ND          mg N/L                 0.0130         0.0154         0.0135         0.0128
+  S_ALK         mol/m3                 4.1260         4.8276         4.1260         3.7149
+  TSS           mg SS/L               12.4970        12.4810        12.5070        12.5120
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  DO=0.3 en O1/  DO=1.72/2.43/  DO=3.5 en O1/
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     47.639 [OK]     47.552 [OK]     47.517 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0     14.658 [OK]     14.024 [OK]     17.606 [OK]
+  DBO5 efluente                 mg/L                   10.0      6.948 [OK]      6.892 [OK]      6.869 [OK]
+  SST efluente                  mg SS/L                30.0     12.481 [OK]     12.507 [OK]     12.512 [OK]
+  Caudal efluente               m3/d                     --  18061.000   18061.000   18061.000 
+  SRT especifico                dias                     --      9.140       9.140       9.140 
+
+  NOTAS DE ESCENARIOS:
+    [DO=0.3 en O1/O2/O3]
+      Nota proceso: DO < K_OA -> nitrificacion inhibida
+      Solver: BDF  |  Tiempo: 1.9s  |  Validacion IWA: 5/14 PASS
+      KLa calculados: O1=195.8 1/d, O2=173.7 1/d, O3=81.9 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: DO_O1=0.3, DO_O2=0.3, DO_O3=0.3
+    [DO=1.72/2.43/0.49]
+      Nota proceso: Defecto BSM1 (KLa=240/240/84)
+      Solver: BDF  |  Tiempo: 2.0s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+    [DO=3.5 en O1/O2/O3]
+      Nota proceso: DO elevado -> nitrificacion plena
+      Solver: BDF  |  Tiempo: 2.0s  |  Validacion IWA: 10/14 PASS
+      KLa calculados: O1=335.1 1/d, O2=297.2 1/d, O3=140.2 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: DO_O1=3.5, DO_O2=3.5, DO_O3=3.5
+
+==============================================================================================================
+GRUPO 3 -- TEMPERATURA (grados C)
+==============================================================================================================
+  Las tasas cineticas ASM1 siguen Arrhenius (theta=1.07).
+  A 15 C: mu_A ~ 0.5 * 1.07^(15-20) = 0.36 1/d (reduccion 28%).
+  A 25 C: mu_A ~ 0.5 * 1.07^(25-20) = 0.70 1/d (aumento 40%).
+  Con Q_WAS fijo, menor temperatura -> peor nitrificacion.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  T=15 C (invie  T=20 C (refer  T=25 C (veran
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0269        30.0000        29.9652
+  S_S           mg COD/L               0.8890         1.0438         0.8897         0.7883
+  X_I           mg COD/L               4.3920         4.2499         4.3918         4.5749
+  X_S           mg COD/L               0.1880         0.2486         0.1885         0.1464
+  X_BH          mg COD/L               9.7820        10.8186         9.7815         8.6649
+  X_BA          mg COD/L               0.5730         0.4884         0.5725         0.5731
+  X_P           mg COD/L               1.7280         1.3637         1.7283         2.1419
+  S_O           mg O2/L                0.4910         0.7202         0.4907         0.5647
+  S_NO          mg N/L                10.4150         7.8380        10.3926         9.8137
+  S_NH          mg N/L                 1.7330         7.6058         1.7336         0.6120
+  S_ND          mg N/L                 0.6880         0.7792         0.6884         0.6351
+  X_ND          mg N/L                 0.0130         0.0172         0.0135         0.0108
+  S_ALK         mol/m3                 4.1260         4.7325         4.1260         4.0817
+  TSS           mg SS/L               12.4970        12.8900        12.5070        12.0840
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  T=15 C (invie  T=20 C (refer  T=25 C (veran
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     48.240 [OK]     47.552 [OK]     46.855 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0     17.482 [OK]     14.024 [OK]     12.214 [OK]
+  DBO5 efluente                 mg/L                   10.0      7.602 [OK]      6.892 [OK]      6.132 [OK]
+  SST efluente                  mg SS/L                30.0     12.890 [OK]     12.507 [OK]     12.084 [OK]
+  Caudal efluente               m3/d                     --  18044.500   18061.000   18082.400 
+  SRT especifico                dias                     --      9.450       9.140       9.120 
+
+  NOTAS DE ESCENARIOS:
+    [T=15 C (invierno)]
+      Nota proceso: Condicion desfavorable
+      Solver: BDF  |  Tiempo: 2.3s  |  Validacion IWA: 3/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Temperature=15
+    [T=20 C (referencia)]
+      Nota proceso: Defecto BSM1
+      Solver: BDF  |  Tiempo: 1.9s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+    [T=25 C (verano)]
+      Nota proceso: Condicion favorable
+      Solver: BDF  |  Tiempo: 1.6s  |  Validacion IWA: 5/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Temperature=25
+
+==============================================================================================================
+GRUPO 4 -- CARGA DE COD INFLUENTE (mg COD/L)
+==============================================================================================================
+  La descomposicion del influente escala linealmente COD_total:
+    S_I_inf = 30.0 * (COD / 381.19)   -- inerte, escala directamente.
+    S_S_inf = 69.5 * (COD / 381.19)   -- biodegradable.
+  S_I pasa por la planta sin degradarse, dominando el COD efluente.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA   COD=200 mg/L   COD=381 mg/L   COD=762 mg/L
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        15.7402        30.0000        59.9701
+  S_S           mg COD/L               0.8890         0.8661         0.8897         2.6851
+  X_I           mg COD/L               4.3920         3.2976         4.3918        29.1301
+  X_S           mg COD/L               0.1880         0.1396         0.1885         5.0206
+  X_BH          mg COD/L               9.7820         7.5152         9.7815        69.6860
+  X_BA          mg COD/L               0.5730         0.9179         0.5725         0.0000
+  X_P           mg COD/L               1.7280         1.2898         1.7283         9.6104
+  S_O           mg O2/L                0.4910         1.0383         0.4907         0.1333
+  S_NO          mg N/L                10.4150        28.4730        10.3926         0.0000
+  S_NH          mg N/L                 1.7330         1.0879         1.7336        30.3474
+  S_ND          mg N/L                 0.6880         0.9380         0.6884         0.6749
+  X_ND          mg N/L                 0.0130         0.0123         0.0135         0.2759
+  S_ALK         mol/m3                 4.1260         2.7879         4.1260         6.9133
+  TSS           mg SS/L               12.4970         9.8790        12.5070        85.2920
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA   COD=200 mg/L   COD=381 mg/L   COD=762 mg/L
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     29.766 [OK]     47.552 [OK]    176.102 [!!]
+  Nitrogeno total (TN)          mg N/L                 18.0     31.461 [!!]     14.024 [OK]     39.197 [!!]
+  DBO5 efluente                 mg/L                   10.0      5.697 [OK]      6.892 [OK]     46.681 [!!]
+  SST efluente                  mg SS/L                30.0      9.879 [OK]     12.507 [OK]     85.292 [!!]
+  Caudal efluente               m3/d                     --  18061.000   18061.000   18061.000 
+  SRT especifico                dias                     --      8.890       9.140      12.680 
+
+  NOTAS DE ESCENARIOS:
+    [COD=200 mg/L]
+      Nota proceso: ~52% del defecto; S_I_inf~15.7
+      Solver: BDF  |  Tiempo: 2.4s  |  Validacion IWA: 1/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: COD_total=200
+    [COD=381 mg/L]
+      Nota proceso: Defecto BSM1
+      Solver: BDF  |  Tiempo: 1.9s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+    [COD=762 mg/L]
+      Nota proceso: ~2x defecto; S_I_inf~60.0
+      Solver: BDF  |  Tiempo: 4.5s  |  Validacion IWA: 1/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: COD_total=762
+
+==============================================================================================================
+GRUPO 5 -- RECIRCULACION INTERNA Q_intr (m3/d)
+==============================================================================================================
+  La recirculacion interna (O3->A1) transporta S_NO a la zona anoxica
+  donde se desnitrifica. Mayor Q_intr -> mas NO3 hacia A1/A2 -> menor S_NO.
+  Rango practico: 1Q a 6Q. Por encima se satura la desnitrificacion.
+  ATENCION: comportamiento NO monotonico observado. A 6Q el TRH en A1/A2
+  cae drasticamente (A1 recibe 147568 m3/d, TRH~0.16 h) limitando la
+  desnitrificacion por contacto insuficiente. El optimo esta en ~3Q.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  Q_intr=18446   Q_intr=55338   Q_intr=110676
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000        30.0000        30.0000
+  S_S           mg COD/L               0.8890         0.8740         0.8897         0.9415
+  X_I           mg COD/L               4.3920         4.3911         4.3918         4.3920
+  X_S           mg COD/L               0.1880         0.1850         0.1885         0.2003
+  X_BH          mg COD/L               9.7820         9.7856         9.7815         9.7744
+  X_BA          mg COD/L               0.5730         0.5760         0.5725         0.5681
+  X_P           mg COD/L               1.7280         1.7276         1.7283         1.7274
+  S_O           mg O2/L                0.4910         0.4452         0.4907         0.5413
+  S_NO          mg N/L                10.4150        11.7500        10.3926        11.1015
+  S_NH          mg N/L                 1.7330         1.5283         1.7336         1.9752
+  S_ND          mg N/L                 0.6880         0.6794         0.6884         0.7246
+  X_ND          mg N/L                 0.0130         0.0135         0.0135         0.0141
+  S_ALK         mol/m3                 4.1260         4.0144         4.1260         4.0926
+  TSS           mg SS/L               12.4970        12.5090        12.5070        12.5070
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  Q_intr=18446   Q_intr=55338   Q_intr=110676
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     47.539 [OK]     47.552 [OK]     47.604 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0     15.167 [OK]     14.024 [OK]     15.010 [OK]
+  DBO5 efluente                 mg/L                   10.0      6.885 [OK]      6.892 [OK]      6.927 [OK]
+  SST efluente                  mg SS/L                30.0     12.509 [OK]     12.507 [OK]     12.507 [OK]
+  Caudal efluente               m3/d                     --  18061.000   18061.000   18061.000 
+  SRT especifico                dias                     --      9.140       9.140       9.150 
+
+  NOTAS DE ESCENARIOS:
+    [Q_intr=18446 (1Q)]
+      Nota proceso: Minimo operacional
+      Solver: BDF  |  Tiempo: 1.4s  |  Validacion IWA: 11/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Q_intr=18446
+    [Q_intr=55338 (3Q)]
+      Nota proceso: Defecto BSM1
+      Solver: BDF  |  Tiempo: 1.9s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+    [Q_intr=110676 (6Q)]
+      Nota proceso: Maximo practico
+      Solver: BDF  |  Tiempo: 2.3s  |  Validacion IWA: 7/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Q_intr=110676
+
+==============================================================================================================
+GRUPO 6 -- VOLUMEN DE REACTORES (m3)
+==============================================================================================================
+  Mayor volumen -> mayor HRT -> mayor tiempo contacto biomasa-sustrato.
+  Con Q_WAS fijo, mayor volumen tambien implica mayor SRT efectivo.
+  Ambos efectos mejoran nitrificacion y eliminacion de COD.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  50%% vol (an=  100%% vol (an  200%% vol (an
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000        30.0000        30.0000
+  S_S           mg COD/L               0.8890         2.3587         0.8897         0.6578
+  X_I           mg COD/L               4.3920         4.1666         4.3918         4.7969
+  X_S           mg COD/L               0.1880         0.6959         0.1885         0.1034
+  X_BH          mg COD/L               9.7820        11.6346         9.7815         7.4350
+  X_BA          mg COD/L               0.5730         0.0000         0.5725         0.5496
+  X_P           mg COD/L               1.7280         1.0185         1.7283         2.6179
+  S_O           mg O2/L                0.4910         0.5022         0.4907         4.4482
+  S_NO          mg N/L                10.4150         0.0000        10.3926        13.8510
+  S_NH          mg N/L                 1.7330        37.4873         1.7336         0.1263
+  S_ND          mg N/L                 0.6880         1.1212         0.6884         0.5802
+  X_ND          mg N/L                 0.0130         0.0453         0.0135         0.0079
+  S_ALK         mol/m3                 4.1260         7.4236         4.1260         3.7640
+  TSS           mg SS/L               12.4970        13.1710        12.5070        11.6330
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  50%% vol (an=  100%% vol (an  200%% vol (an
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     49.874 [OK]     47.552 [OK]     46.161 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0     39.896 [!!]     14.024 [OK]     15.649 [OK]
+  DBO5 efluente                 mg/L                   10.0      8.943 [OK]      6.892 [OK]      5.270 [OK]
+  SST efluente                  mg SS/L                30.0     13.171 [OK]     12.507 [OK]     11.633 [OK]
+  Caudal efluente               m3/d                     --  18061.000   18061.000   18061.000 
+  SRT especifico                dias                     --      5.950       9.140      16.350 
+
+  NOTAS DE ESCENARIOS:
+    [50%% vol (an=500, ae=666)]
+      Nota proceso: HRT ~3.9 h, SRT reducido
+      Solver: BDF  |  Tiempo: 2.5s  |  Validacion IWA: 2/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: V_anoxic=500, V_aerobic=666
+    [100%% vol (an=1000, ae=1333)]
+      Nota proceso: Defecto BSM1 (HRT ~7.8 h)
+      Solver: BDF  |  Tiempo: 1.8s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+    [200%% vol (an=2000, ae=2666)]
+      Nota proceso: HRT ~15.6 h, SRT elevado
+      Solver: BDF  |  Tiempo: 1.4s  |  Validacion IWA: 2/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: V_anoxic=2000, V_aerobic=2666
+
+==============================================================================================================
+GRUPO 7 -- CAUDAL INFLUENTE Q (m3/d)
+==============================================================================================================
+  Q controla el HRT: HRT = (2*V_an + 3*V_ae) / Q.
+  Con volumenes fijos, mayor Q -> menor HRT -> peor tratamiento.
+  La carga hidraulica del decantador (SOR=Q_feed/A) tambien aumenta.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  Q=9000 m3/d (  Q=18446 m3/d   Q=36000 m3/d 
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000        30.0000        30.0000
+  S_S           mg COD/L               0.8890         0.7638         0.8897         2.2641
+  X_I           mg COD/L               4.3920         2.5787         4.3918        16.6368
+  X_S           mg COD/L               0.1880         0.0795         0.1885         2.6556
+  X_BH          mg COD/L               9.7820         4.8871         9.7815        46.4661
+  X_BA          mg COD/L               0.5730         0.3251         0.5725         0.0000
+  X_P           mg COD/L               1.7280         1.2076         1.7283         4.0861
+  S_O           mg O2/L                0.4910         4.1346         0.4907         0.4632
+  S_NO          mg N/L                10.4150        19.0044        10.3926         0.0000
+  S_NH          mg N/L                 1.7330         0.3107         1.7336        37.5297
+  S_ND          mg N/L                 0.6880         0.6580         0.6884         1.0941
+  X_ND          mg N/L                 0.0130         0.0058         0.0135         0.1739
+  S_ALK         mol/m3                 4.1260         3.4090         4.1260         7.4266
+  TSS           mg SS/L               12.4970         6.8130        12.5070        52.5140
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  Q=9000 m3/d (  Q=18446 m3/d   Q=36000 m3/d 
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     39.842 [OK]     47.552 [OK]    102.109 [!!]
+  Nitrogeno total (TN)          mg N/L                 18.0     20.623 [!!]     14.024 [OK]     43.758 [!!]
+  DBO5 efluente                 mg/L                   10.0      3.665 [OK]      6.892 [OK]     30.985 [!!]
+  SST efluente                  mg SS/L                30.0      6.813 [OK]     12.507 [OK]     52.514 [!!]
+  Caudal efluente               m3/d                     --   8615.000   18061.000   35615.000 
+  SRT especifico                dias                     --     12.230       9.140       9.240 
+
+  NOTAS DE ESCENARIOS:
+    [Q=9000 m3/d (0.5x)]
+      Nota proceso: HRT ~15.6 h (bajo carga)
+      Solver: BDF  |  Tiempo: 1.9s  |  Validacion IWA: 2/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Q=9000
+    [Q=18446 m3/d (1x)]
+      Nota proceso: Defecto BSM1 (HRT ~7.8 h)
+      Solver: BDF  |  Tiempo: 1.8s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+    [Q=36000 m3/d (2x)]
+      Nota proceso: HRT ~4.0 h (sobrecarga)
+      Solver: BDF  |  Tiempo: 4.3s  |  Validacion IWA: 1/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Q=36000
+
+==============================================================================================================
+GRUPO 8 -- TKN INFLUENTE (mg N/L)
+==============================================================================================================
+  TKN influente determina la carga de amoniaco: S_NH_inf = 31.56*(TKN/51.35).
+  Con capacidad de nitrificacion fija (SRT, KLa), mayor carga TKN
+  supera el limite -> S_NH efluente sube.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  TKN=25 mg N/L  TKN=51 mg N/L  TKN=100 mg N/
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000        30.0000        30.0000
+  S_S           mg COD/L               0.8890         1.1740         0.8897         0.9007
+  X_I           mg COD/L               4.3920         4.4474         4.3918         4.3622
+  X_S           mg COD/L               0.1880         0.2574         0.1885         0.1902
+  X_BH          mg COD/L               9.7820         9.8425         9.7815         9.7329
+  X_BA          mg COD/L               0.5730         0.2089         0.5725         0.7528
+  X_P           mg COD/L               1.7280         1.7224         1.7283         1.7264
+  S_O           mg O2/L                0.4910         1.7701         0.4907         0.1730
+  S_NO          mg N/L                10.4150         2.3380        10.3926        17.7843
+  S_NH          mg N/L                 1.7330         1.1613         1.7336        35.5625
+  S_ND          mg N/L                 0.6880         0.7198         0.6884         0.8545
+  X_ND          mg N/L                 0.0130         0.0152         0.0135         0.0169
+  S_ALK         mol/m3                 4.1260         5.8180         4.1260         3.8785
+  TSS           mg SS/L               12.4970        12.3700        12.5070        12.5860
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  TKN=25 mg N/L  TKN=51 mg N/L  TKN=100 mg N/
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     47.653 [OK]     47.552 [OK]     47.665 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0      5.409 [OK]     14.024 [OK]     55.422 [!!]
+  DBO5 efluente                 mg/L                   10.0      6.941 [OK]      6.892 [OK]      6.980 [OK]
+  SST efluente                  mg SS/L                30.0     12.370 [OK]     12.507 [OK]     12.586 [OK]
+  Caudal efluente               m3/d                     --  18061.000   18061.000   18061.000 
+  SRT especifico                dias                     --      9.120       9.140       9.200 
+
+  NOTAS DE ESCENARIOS:
+    [TKN=25 mg N/L (bajo)]
+      Nota proceso: S_NH_inf~15.4 mg/L
+      Solver: BDF  |  Tiempo: 2.3s  |  Validacion IWA: 6/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: TKN=25
+    [TKN=51 mg N/L (ref)]
+      Nota proceso: Defecto BSM1 (S_NH_inf=31.56)
+      Solver: BDF  |  Tiempo: 1.8s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+    [TKN=100 mg N/L (alto)]
+      Nota proceso: S_NH_inf~61.5 mg/L -> sobrecarga
+      Solver: BDF  |  Tiempo: 2.0s  |  Validacion IWA: 7/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: TKN=100
+
+==============================================================================================================
+GRUPO 9 -- RECIRCULACION EXTERNA RAS Q_RAS (m3/d)
+==============================================================================================================
+  RAS devuelve los lodos del clarificador a A1.
+  Mayor Q_RAS -> mayor MLSS en reactores -> mejor retencion de biomasa
+  -> mejor nitrificacion. Contrapartida: mayor carga hidraulica en decantador.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  Q_RAS=9000 m3  Q_RAS=18446 m  Q_RAS=55000 m
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000        30.0000        30.0000
+  S_S           mg COD/L               0.8890         1.0212         0.8897         0.8657
+  X_I           mg COD/L               4.3920         3.5454         4.3918         5.6811
+  X_S           mg COD/L               0.1880         0.2052         0.1885         0.1984
+  X_BH          mg COD/L               9.7820         9.1845         9.7815        10.5914
+  X_BA          mg COD/L               0.5730         0.3822         0.5725         0.7031
+  X_P           mg COD/L               1.7280         1.1026         1.7283         2.6929
+  S_O           mg O2/L                0.4910         0.8417         0.4907         0.4810
+  S_NO          mg N/L                10.4150         6.7661        10.3926        10.2623
+  S_NH          mg N/L                 1.7330         9.6761         1.7336         0.7468
+  S_ND          mg N/L                 0.6880         0.7818         0.6884         0.6690
+  X_ND          mg N/L                 0.0130         0.0143         0.0135         0.0143
+  S_ALK         mol/m3                 4.1260         4.9527         4.1260         4.0648
+  TSS           mg SS/L               12.4970        10.8260        12.5070        14.9110
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  Q_RAS=9000 m3  Q_RAS=18446 m  Q_RAS=55000 m
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     45.441 [OK]     47.552 [OK]     50.733 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0     18.283 [!!]     14.024 [OK]     13.098 [OK]
+  DBO5 efluente                 mg/L                   10.0      6.518 [OK]      6.892 [OK]      7.446 [OK]
+  SST efluente                  mg SS/L                30.0     10.826 [OK]     12.507 [OK]     14.911 [OK]
+  Caudal efluente               m3/d                     --  18061.000   18061.000   18061.000 
+  SRT especifico                dias                     --      6.700       9.140      13.350 
+
+  NOTAS DE ESCENARIOS:
+    [Q_RAS=9000 m3/d (0.5Q)]
+      Nota proceso: Poca retencion de biomasa
+      Solver: BDF  |  Tiempo: 2.6s  |  Validacion IWA: 1/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Q_RAS=9000
+    [Q_RAS=18446 m3/d (1Q)]
+      Nota proceso: Defecto BSM1
+      Solver: BDF  |  Tiempo: 1.8s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+    [Q_RAS=55000 m3/d (~3Q)]
+      Nota proceso: Alta retencion de biomasa
+      Solver: BDF  |  Tiempo: 1.8s  |  Validacion IWA: 6/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Q_RAS=55000
+
+==============================================================================================================
+GRUPO 10 -- AREA DEL DECANTADOR (m2)
+==============================================================================================================
+  El SOR (surface overflow rate) = Q_feed / A controla la separacion de solidos.
+  Q_feed = Q + Q_RAS = 36892 m3/d (defecto).
+  A mayor SOR, la velocidad ascensional supera la de sedimentacion -> TSS sube.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  Area=500 m2    Area=1500 m2   Area=4000 m2 
+  ----------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000        30.0000        30.0000
+  S_S           mg COD/L               0.8890         0.9159         0.8897         0.8840
+  X_I           mg COD/L               4.3920         9.8037         4.3918         2.9924
+  X_S           mg COD/L               0.1880         0.4564         0.1885         0.1260
+  X_BH          mg COD/L               9.7820        22.9614         9.7815         6.5812
+  X_BA          mg COD/L               0.5730         1.2664         0.5725         0.3899
+  X_P           mg COD/L               1.7280         3.6058         1.7283         1.1963
+  S_O           mg O2/L                0.4910         0.5127         0.4907         0.4901
+  S_NO          mg N/L                10.4150         9.9987        10.3926        10.4379
+  S_NH          mg N/L                 1.7330         2.7705         1.7336         1.5620
+  S_ND          mg N/L                 0.6880         0.7071         0.6884         0.6845
+  X_ND          mg N/L                 0.0130         0.0324         0.0135         0.0090
+  S_ALK         mol/m3                 4.1260         4.2283         4.1260         4.1105
+  TSS           mg SS/L               12.4970        28.5950        12.5070         8.4710
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  Area=500 m2    Area=1500 m2   Area=4000 m2 
+  ----------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     69.010 [OK]     47.552 [OK]     42.170 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0     16.252 [OK]     14.024 [OK]     13.502 [OK]
+  DBO5 efluente                 mg/L                   10.0     15.380 [!!]      6.892 [OK]      4.825 [OK]
+  SST efluente                  mg SS/L                30.0     28.595 [OK]     12.507 [OK]      8.471 [OK]
+  Caudal efluente               m3/d                     --  18061.000   18061.000   18061.000 
+  SRT especifico                dias                     --      7.380       9.140      12.050 
+
+  NOTAS DE ESCENARIOS:
+    [Area=500 m2  (SOR=3.1 m/h)]
+      Nota proceso: Decantador subdimensionado (pequeno)
+      Solver: BDF  |  Tiempo: 1.6s  |  Validacion IWA: 6/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Clarifier_area=500
+    [Area=1500 m2 (SOR=1.0 m/h)]
+      Nota proceso: Defecto BSM1
+      Solver: BDF  |  Tiempo: 1.8s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+    [Area=4000 m2 (SOR=0.4 m/h)]
+      Nota proceso: Holgura de capacidad
+      Solver: BDF  |  Tiempo: 2.9s  |  Validacion IWA: 6/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Clarifier_area=4000
+
+==============================================================================================================
+GRUPO 11 -- PARAMETROS SIN EFECTO EN EFLUENTE EN ESTADO ESTACIONARIO (verificacion)
+==============================================================================================================
+  Estos parametros son informativos o tienen compensacion exacta en SS.
+  La calidad del efluente (concentraciones) debe ser identica al caso base.
+  NOTA Clarifier_height: si bien el efluente es identico, el SRT SI cambia
+  (mayor volumen de decantador -> mayor masa de lodo en el sistema -> mayor SRT).
+  Esto es consistente con la teoria: la altura afecta el blanket de lodos
+  almacenado, no la separacion solido-liquido en superficie.
+
+  COMPONENTES ASM1 EN EFLUENTE:
+  Componente    Unidades              Ref IWA  TSS_inf=50 mg  TSS_inf=1000   DOsat=6.5 mg/  DOsat=12.0 mg  Clarifier_h=1  Clarifier_h=1
+  -------------------------------------------------------------------------------------------------------------------------------------
+  S_I           mg COD/L              30.0000        30.0000        30.0000        30.0000        30.0000        30.0000        30.0000
+  S_S           mg COD/L               0.8890         0.8897         0.8897         0.8897         0.8897         0.8897         0.8897
+  X_I           mg COD/L               4.3920         4.3918         4.3918         4.3918         4.3918         4.3918         4.3918
+  X_S           mg COD/L               0.1880         0.1885         0.1885         0.1885         0.1885         0.1885         0.1885
+  X_BH          mg COD/L               9.7820         9.7815         9.7815         9.7815         9.7815         9.7815         9.7815
+  X_BA          mg COD/L               0.5730         0.5725         0.5725         0.5725         0.5725         0.5725         0.5725
+  X_P           mg COD/L               1.7280         1.7283         1.7283         1.7283         1.7283         1.7283         1.7283
+  S_O           mg O2/L                0.4910         0.4907         0.4907         0.4907         0.4907         0.4907         0.4907
+  S_NO          mg N/L                10.4150        10.3926        10.3926        10.3928        10.3920        10.3926        10.3926
+  S_NH          mg N/L                 1.7330         1.7336         1.7336         1.7335         1.7338         1.7336         1.7336
+  S_ND          mg N/L                 0.6880         0.6884         0.6884         0.6884         0.6884         0.6884         0.6884
+  X_ND          mg N/L                 0.0130         0.0135         0.0135         0.0135         0.0135         0.0135         0.0135
+  S_ALK         mol/m3                 4.1260         4.1260         4.1260         4.1260         4.1261         4.1260         4.1260
+  TSS           mg SS/L               12.4970        12.5070        12.5070        12.5070        12.5070        12.5070        12.5070
+
+  INDICADORES AGREGADOS:
+  Indicador                     Unidades            Lim IWA  TSS_inf=50 mg  TSS_inf=1000   DOsat=6.5 mg/  DOsat=12.0 mg  Clarifier_h=1  Clarifier_h=1
+  -------------------------------------------------------------------------------------------------------------------------------------------------
+  COD total efluente            mg COD/L              100.0     47.552 [OK]     47.552 [OK]     47.552 [OK]     47.552 [OK]     47.552 [OK]     47.552 [OK]
+  Nitrogeno total (TN)          mg N/L                 18.0     14.024 [OK]     14.024 [OK]     14.024 [OK]     14.023 [OK]     14.024 [OK]     14.024 [OK]
+  DBO5 efluente                 mg/L                   10.0      6.892 [OK]      6.892 [OK]      6.892 [OK]      6.892 [OK]      6.892 [OK]      6.892 [OK]
+  SST efluente                  mg SS/L                30.0     12.507 [OK]     12.507 [OK]     12.507 [OK]     12.507 [OK]     12.507 [OK]     12.507 [OK]
+  Caudal efluente               m3/d                     --  18061.000   18061.000   18061.000   18061.000   18061.000   18061.000 
+  SRT especifico                dias                     --      9.140       9.140       9.140       9.140       7.750      11.920 
+
+  NOTAS DE ESCENARIOS:
+    [TSS_inf=50 mg/L]
+      Nota proceso: Solo advertencia en pre_check
+      Solver: BDF  |  Tiempo: 1.8s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: TSS_inf=50
+    [TSS_inf=1000 mg/L]
+      Nota proceso: Solo advertencia en pre_check
+      Solver: BDF  |  Tiempo: 1.8s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: TSS_inf=1000
+    [DOsat=6.5 mg/L]
+      Nota proceso: KLa compensa (OUR invariante)
+      Solver: BDF  |  Tiempo: 2.3s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=315.4 1/d, O2=328.6 1/d, O3=105.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: DOsat=6.5
+    [DOsat=12.0 mg/L]
+      Nota proceso: KLa compensa (OUR invariante)
+      Solver: BDF  |  Tiempo: 1.7s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=146.7 1/d, O2=139.8 1/d, O3=54.8 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: DOsat=12.0
+    [Clarifier_h=1 m]
+      Nota proceso: Solo volumen almacenamiento
+      Solver: BDF  |  Tiempo: 1.2s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Clarifier_height=1
+    [Clarifier_h=10 m]
+      Nota proceso: Solo volumen almacenamiento
+      Solver: BDF  |  Tiempo: 2.5s  |  Validacion IWA: 14/14 PASS
+      KLa calculados: O1=240.1 1/d, O2=240.1 1/d, O3=84.0 1/d
+      Q_WAS efectivo: 385.0 m3/d
+      Parametros modificados: Clarifier_height=10
+
+==============================================================================================================
+TABLA RESUMEN: CUMPLIMIENTO LIMITES IWA POR ESCENARIO
+  [OK] = dentro del limite  |  [!!] = excede el limite  |  -- = sin limite definido
+==============================================================================================================
+
+  Escenario                      COD_total      TN_total          BOD5           TSS    Q_effluent    SRT_specif
+  ----------------------------------------------------------------------------------------------------------------
+  BASE                           47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  Q_WAS=192 (SRT~18.3d)          55.99 [OK]     12.12 [OK]      8.63 [OK]     18.89 [OK]  18254.00         26.09    
+  Q_WAS=385 (SRT~9.1d)           47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  Q_WAS=855 (SRT~4.5d)           44.63 [OK]     39.41 [!!]      6.59 [OK]      9.71 [OK]  17591.00          4.36    
+  DO=0.3 en O1/O2/O3             47.64 [OK]     14.66 [OK]      6.95 [OK]     12.48 [OK]  18061.00          9.14    
+  DO=1.72/2.43/0.49              47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  DO=3.5 en O1/O2/O3             47.52 [OK]     17.61 [OK]      6.87 [OK]     12.51 [OK]  18061.00          9.14    
+  T=15 C (invierno)              48.24 [OK]     17.48 [OK]      7.60 [OK]     12.89 [OK]  18044.50          9.45    
+  T=20 C (referencia)            47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  T=25 C (verano)                46.85 [OK]     12.21 [OK]      6.13 [OK]     12.08 [OK]  18082.40          9.12    
+  COD=200 mg/L                   29.77 [OK]     31.46 [!!]      5.70 [OK]      9.88 [OK]  18061.00          8.89    
+  COD=381 mg/L                   47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  COD=762 mg/L                  176.10 [!!]     39.20 [!!]     46.68 [!!]     85.29 [!!]  18061.00         12.68    
+  Q_intr=18446 (1Q)              47.54 [OK]     15.17 [OK]      6.88 [OK]     12.51 [OK]  18061.00          9.14    
+  Q_intr=55338 (3Q)              47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  Q_intr=110676 (6Q)             47.60 [OK]     15.01 [OK]      6.93 [OK]     12.51 [OK]  18061.00          9.15    
+  50%% vol (an=500, ae=666)      49.87 [OK]     39.90 [!!]      8.94 [OK]     13.17 [OK]  18061.00          5.95    
+  100%% vol (an=1000, ae=133     47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  200%% vol (an=2000, ae=266     46.16 [OK]     15.65 [OK]      5.27 [OK]     11.63 [OK]  18061.00         16.35    
+  Q=9000 m3/d (0.5x)             39.84 [OK]     20.62 [!!]      3.67 [OK]      6.81 [OK]   8615.00         12.23    
+  Q=18446 m3/d (1x)              47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  Q=36000 m3/d (2x)             102.11 [!!]     43.76 [!!]     30.98 [!!]     52.51 [!!]  35615.00          9.24    
+  TKN=25 mg N/L (bajo)           47.65 [OK]      5.41 [OK]      6.94 [OK]     12.37 [OK]  18061.00          9.12    
+  TKN=51 mg N/L (ref)            47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  TKN=100 mg N/L (alto)          47.66 [OK]     55.42 [!!]      6.98 [OK]     12.59 [OK]  18061.00          9.20    
+  Q_RAS=9000 m3/d (0.5Q)         45.44 [OK]     18.28 [!!]      6.52 [OK]     10.83 [OK]  18061.00          6.70    
+  Q_RAS=18446 m3/d (1Q)          47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  Q_RAS=55000 m3/d (~3Q)         50.73 [OK]     13.10 [OK]      7.45 [OK]     14.91 [OK]  18061.00         13.35    
+  Area=500 m2  (SOR=3.1 m/h)     69.01 [OK]     16.25 [OK]     15.38 [!!]     28.59 [OK]  18061.00          7.38    
+  Area=1500 m2 (SOR=1.0 m/h)     47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  Area=4000 m2 (SOR=0.4 m/h)     42.17 [OK]     13.50 [OK]      4.83 [OK]      8.47 [OK]  18061.00         12.05    
+  TSS_inf=50 mg/L                47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  TSS_inf=1000 mg/L              47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  DOsat=6.5 mg/L                 47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  DOsat=12.0 mg/L                47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          9.14    
+  Clarifier_h=1 m                47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00          7.75    
+  Clarifier_h=10 m               47.55 [OK]     14.02 [OK]      6.89 [OK]     12.51 [OK]  18061.00         11.92    
+
+==============================================================================================================
+FIN DEL INFORME
+==============================================================================================================

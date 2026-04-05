@@ -1,0 +1,16 @@
+.git/
+.claude/
+__pycache__/
+*.pyc
+.ruff_cache/
+results/
+*.csv
+RESULTADOS_*.txt
+*.html
+*.md
+!requirements.txt
+.vscode/
+.idea/
+tests/
+run_bsm1_simulation.py
+BSM1_diagram_ASCII.txt

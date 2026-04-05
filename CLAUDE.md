@@ -3,7 +3,7 @@
 > Este archivo contiene TODA la informacion que necesita una IA para modificar,
 > ejecutar y validar el simulador BSM1 implementado con QSDsan/EXPOsan.
 > Es el unico archivo de contexto necesario (reemplaza README, INICIO_RAPIDO, BSM1_referencia_IWA).
-> Ultima actualizacion: 2026-03-25.
+> Ultima actualizacion: 2026-04-05.
 
 ---
 
@@ -24,7 +24,9 @@
 ### Instalacion
 
 ```bash
-pip install qsdsan==1.3.0 exposan==1.4.3
+pip install -e .          # instala todo desde pyproject.toml
+# O manualmente:
+pip install qsdsan==1.3.0 exposan==1.4.3 fastapi uvicorn pydantic pydantic-settings openpyxl python-multipart
 ```
 
 ---
@@ -33,10 +35,30 @@ pip install qsdsan==1.3.0 exposan==1.4.3
 
 ```
 QSDsan_test01/
-  claude.md                              <-- Este archivo (unico .md necesario)
-  run_bsm1_simulation.py                 <-- Script principal de simulacion
-  resultados_bsm1_ss_componentes.csv     <-- CSV con resultados estado estacionario
-  RESULTADOS_VALIDACION_BSM1.txt         <-- Reporte completo de validacion
+  CLAUDE.md                    <-- Este archivo (documentacion principal)
+  pyproject.toml               <-- Dependencias y config Ruff/pytest
+  requirements.txt             <-- Dependencias (mirror de pyproject.toml)
+  Dockerfile                   <-- Imagen Docker del simulador
+  docker-compose.yml           <-- Orquestacion Docker
+  run_bsm1_simulation.py       <-- Script standalone original (referencia)
+  BSM1_diagram_ASCII.txt       <-- Diagrama ASCII de la planta BSM1
+  app/                         <-- Aplicacion FastAPI
+    __init__.py
+    config.py                  <-- Constantes IWA, defaults BSM1, Settings
+    engine.py                  <-- Motor de simulacion (logica principal)
+    excel_parser.py            <-- Parser Excel -> PlantParameters + tags SCADA
+    excel_template.py          <-- Generador de plantilla Excel BSM1
+    main.py                    <-- FastAPI endpoints (10 rutas)
+    models.py                  <-- Schemas Pydantic (request/response)
+    patch.py                   <-- Parche pkg_resources para Python 3.13
+    static/
+      index.html               <-- Interfaz web (dashboard)
+  tests/                       <-- Suite pytest
+    test_api.py                <-- Tests de endpoints API
+    test_engine.py             <-- Tests unitarios del motor
+    test_trends.py             <-- Tests de tendencias/sensibilidad (@slow)
+  reports/                     <-- Informes de analisis de sensibilidad
+  scripts/                     <-- Scripts auxiliares (generacion de informes)
 ```
 
 ---
@@ -731,3 +753,232 @@ s.morris_analysis(modelo, num_levels=4, N=100)
 - `.claude/agents/` - Agente validador de simulacion EDAR
 - Linter/Formatter: Ruff (config en `pyproject.toml`)
 - Ejecutar `ruff check .` y `ruff format .` antes de commits
+
+---
+
+## 22. Despliegue Docker (API REST)
+
+El simulador puede desplegarse como contenedor Docker exponiendo una API REST con FastAPI.
+
+### Estructura de la API
+
+```
+app/
+  __init__.py          # Package init
+  config.py            # Constantes IWA + Settings (env vars con prefijo BSM1_)
+  models.py            # Schemas Pydantic (request/response)
+  engine.py            # Motor de simulacion (logica principal)
+  excel_parser.py      # Parser Excel -> PlantParameters + tags SCADA
+  excel_template.py    # Generador de plantilla Excel BSM1
+  main.py              # FastAPI app con endpoints
+  patch.py             # Parche pkg_resources para Python 3.13 (build-time)
+  static/
+    index.html         # Interfaz web (dashboard)
+```
+
+### Endpoints
+
+| Metodo | Ruta | Descripcion |
+|--------|------|-------------|
+| GET | `/` | Interfaz web (dashboard HTML) |
+| GET | `/health` | Health check + version QSDsan |
+| GET | `/reference/iwa` | Valores referencia IWA completos |
+| GET | `/defaults/plant` | Parametros por defecto con rangos y etiquetas |
+| POST | `/simulate/pre-check` | Validacion previa + valores calculados (KLa, WAS, warnings) |
+| POST | `/simulate/steady-state` | Ejecutar simulacion BSM1 (2-5 seg) |
+| GET | `/results/latest` | Ultimo resultado en memoria |
+| POST | `/validate` | Validar valores custom contra IWA |
+| GET | `/export/excel-template` | Descargar plantilla Excel BSM1 (.xlsx) |
+| POST | `/simulate/from-excel` | Subir Excel rellenado y simular |
+
+### Interfaz web
+
+`GET /` sirve un dashboard web single-page en `app/static/index.html`. Permite:
+- Modificar parametros de planta con sliders/inputs
+- Ejecutar simulaciones y ver resultados en tiempo real
+- Descargar plantilla Excel y subir Excel rellenado para simular
+- Ver graficas de componentes y limites IWA
+Paleta oscura, fuente Open Sans. Reglas de diseno en `.claude/rules/ui-design.md`.
+
+### Flujo Excel (plantilla SCADA)
+
+1. `GET /export/excel-template` descarga `BSM1_plantilla.xlsx` con valores BSM1 por defecto.
+2. El usuario rellena columna C (valores planta) y columnas G-H (tag SCADA + fuente).
+3. `POST /simulate/from-excel` sube el Excel, parsea parametros y tags, ejecuta simulacion.
+4. Los tags se devuelven en `aggregates` como `_tag_<param_id>` (ej. `_tag_Q: "FT-001|SCADA"`).
+5. Si los volumenes por reactor difieren, se avisa en `aggregates._warnings_excel`.
+
+### Construir y ejecutar
+
+```bash
+# Construir imagen
+docker compose build
+
+# Ejecutar contenedor
+docker compose up -d
+
+# Verificar salud
+curl http://localhost:8000/health
+
+# Ejecutar simulacion
+curl -X POST http://localhost:8000/simulate/steady-state
+
+# Documentacion interactiva (Swagger)
+# Abrir en navegador: http://localhost:8000/docs
+```
+
+### Variables de entorno
+
+| Variable | Default | Descripcion |
+|----------|---------|-------------|
+| BSM1_T_DAYS | 200 | Dias de simulacion |
+| BSM1_METHOD | BDF | Metodo ODE (BDF o Radau) |
+| BSM1_TOLERANCE | 0.05 | Tolerancia validacion (5%) |
+| BSM1_HOST | 0.0.0.0 | Host del servidor |
+| BSM1_PORT | 8000 | Puerto del servidor |
+
+### Tests
+
+```bash
+# Tests rapidos (sin simulacion)
+python -m pytest tests/ -m "not slow"
+
+# Solo tests de tendencias (validacion cualitativa)
+python -m pytest tests/test_trends.py -v
+
+# Tests completos (incluye simulacion ~5 seg)
+python -m pytest tests/
+```
+
+---
+
+## 23. Comportamiento conocido de parametros PlantParameters
+
+Resultados de pruebas exhaustivas (2026-04-01) sobre los 18 campos de PlantParameters.
+Todos los parametros son efectivamente aplicados en la simulacion EXCEPTO los indicados.
+
+### Parametros con efecto directo y testado
+
+| Parametro | Efecto principal verificado |
+|-----------|----------------------------|
+| Q_WAS / SRT_target | Q_WAS alto -> S_NH sube (nitrificadores lavados) |
+| DO_O1/O2/O3 | DO bajo -> KLa bajo -> S_NH sube |
+| Temperature | Temperatura baja -> mu_A menor (Arrhenius) -> S_NH sube |
+| COD_total | COD alto -> S_I efluente sube (fraccion inerte proporcional) |
+| Q_intr | Q_intr alto -> mas desnitrificacion -> S_NO baja |
+| V_anoxic / V_aerobic | Volumen mayor -> HRT y SRT mayores -> S_NH baja |
+| Q | Q alto -> HRT menor, carga clarificador mayor -> S_NH y TSS suben |
+| TKN | TKN alto -> S_NH_inf mayor -> S_NH efluente sube |
+| Q_RAS | Q_RAS bajo -> menos biomasa en reactores -> S_NH sube |
+| Clarifier_area | Area menor -> SOR (Q/A) mayor -> TSS efluente sube |
+
+### Parametros sin efecto en estado estacionario (comportamiento esperado)
+
+| Parametro | Razon | Notas |
+|-----------|-------|-------|
+| TSS_inf | Solo se usa para advertencia en pre_check. `decompose_influent()` escala componentes COD con COD_total y N con TKN. TSS_inf NO altera ningun componente ASM1. | Cambiar TSS_inf con COD_total fijo = resultado identico. |
+| Clarifier_height | El modelo Takacs gobierna la separacion S/L por velocidades de flujo en la superficie, no por profundidad. La altura NO afecta la calidad del efluente (concentraciones identicas). SIN EMBARGO si afecta el SRT porque cambia el volumen del blanket: height=1 -> SRT=7.75d, height=10 -> SRT=11.92d. | TSS/S_NH/COD efluente identicos con height=1 y height=10, pero SRT varia. |
+| DOsat (solo) | El calculo `KLa = OUR_ref / (DOsat - DO_setpoint)` compensa exactamente el cambio de DOsat. La tasa de transferencia en el punto de operacion KLa*(DOsat - DO_ss) = OUR_ref es invariante. | S_NH identica con DOsat=6.5 y DOsat=12 manteniendo DO_setpoints fijos. |
+
+### Advertencia sobre DOsat y DO_setpoints
+
+Si `DO_setpoint >= DOsat`, `do_to_kla()` devuelve 0 (sin aireacion), lo que colapsa
+la nitrificacion. El pre_check advierte cuando DO_setpoint > DOsat - 0.5 mg/L.
+Esto se aplica independientemente por reactor: DO_O1, DO_O2, DO_O3 cada uno debe
+ser estrictamente menor que DOsat.
+
+### Cobertura de tests (tests/test_trends.py)
+
+| Clase | Parametro | Tests |
+|-------|-----------|-------|
+| TestTrendSRT | Q_WAS / SRT_target | 2 tests |
+| TestTrendAeration | DO_O1/O2/O3 | 1 test |
+| TestTrendTemperature | Temperature | 2 tests |
+| TestTrendCODLoad | COD_total | 2 tests |
+| TestTrendInternalRecirculation | Q_intr | 1 test |
+| TestTrendReactorVolume | V_anoxic / V_aerobic | 2 tests |
+| TestTrendInfluentFlow | Q | 2 tests |
+| TestTrendTKN | TKN | 1 test |
+| TestTrendQRAS | Q_RAS | 1 test |
+| TestTrendClarifierArea | Clarifier_area | 1 test |
+| TestTrendTSSInf | TSS_inf (invariancia) | 1 test |
+
+Total: 16 tests de tendencias, todos `@pytest.mark.slow`. Tiempo aprox: ~90 s.
+
+### Echo de parametros en respuesta de simulacion
+
+`run_steady_state_simulation()` incluye en `aggregates` claves `_param_*` con todos
+los valores numericos de PlantParameters aplicados (via `plant.model_dump()`) mas
+`_param_KLa_O1/O2/O3` calculados y `_param_Q_WAS` efectivo (despues de convertir SRT).
+Esto permite verificar en la UI que los parametros se aplicaron correctamente.
+
+La iteracion es automatica: cualquier campo numerico nuevo en PlantParameters aparece
+en el echo sin modificar engine.py.
+
+---
+
+## 24. Analisis de sensibilidad y hallazgos de proceso (2026-04-02)
+
+Resultados de 37 escenarios + 38 pruebas adicionales de verificacion experta.
+Archivos en `reports/`: `INFORME_SENSIBILIDAD_PARAMETROS.txt`, `ANALISIS_EXPERTO.txt`.
+
+### Hallazgos operacionales clave
+
+**Recirculacion interna Q_intr:**
+- El S_NO minimo en efluente se alcanza en ~2.5Q (S_NO=10.37 mg/L), NO en 3Q (10.39).
+- El BSM1 por defecto usa 3Q, que es apenas supraoptimo.
+- Comportamiento NO MONOTONO confirmado: mas alla de 3Q el S_NO sube porque el TRH anoxico
+  decrece (a 6Q: TRH_A1~0.16 h, a 10Q: S_NO sube a 12.24 mg/L).
+- Rango operacional recomendado: 2Q-4Q.
+- A Q_intr=0 el sistema no converge (corriente de recirculacion vacia).
+
+**DO en reactor O3 (recirculacion interna):**
+- DO_O3 alto arrastra O2 al reactor anoxico A1 via recirculacion (3Q = 55338 m3/d).
+- Con DO_O1/O2=3.5 y DO_O3=0.49: TN=15.5 [OK].
+- Con DO_O1/O2=3.5 y DO_O3=3.5: TN=17.6 (roza el limite de 18 mg/L).
+- El BSM1 usa DO_O3=0.49 por diseno. No subir DO_O3 por encima de ~1.0 mg/L.
+- Pre_check (engine.py) advierte cuando DO_O3 > 1.0 y Q_intr > 2Q.
+
+**COD influente y starvation de O2:**
+- El KLa de diseno (basado en COD_default=381 mg/L) es insuficiente para COD > ~450 mg/L.
+- A COD=550 (1.44x): S_O_eff=0.208 mg/L < K_OA=0.4 -> nitrificacion inhibida (S_NH=9.7).
+- A COD=762 (2x): S_O_eff=0.133 mg/L, S_NH=30.3 (colapso total).
+- Aumentar DO setpoints compensa parcialmente: a COD=762 con DO_O1/O2=6.0 -> S_NH=4.5.
+- Pre_check advierte cuando COD_total > 450 mg/L.
+
+**Q bajo con recirculaciones fijas (problema operacional):**
+- A Q=9000 m3/d con Q_RAS/Q_intr defecto: Q_intr/Q=6.15 -> efecto no-monotono + deficit C:N
+  en zona anoxica -> TN=20.6 [!!].
+- Con Q_RAS=1Q, Q_intr=3Q (proporcional a Q): TN=16.4 [OK].
+- Con Q_intr=5Q a Q=9000: TN=18.9 [!!] (sigue siendo demasiado).
+- Regla: al cambiar Q, ajustar Q_RAS y Q_intr proporcionalmente.
+- Pre_check advierte cuando Q_intr/Q > 5.
+
+**Temperatura y SRT:**
+- A T=15 C, Q_WAS=385 (SRT~9.5d): S_NH=7.6 [!!] (nitrificacion insuficiente).
+- A T=15 C, Q_WAS=250 (SRT~17.3d): S_NH=1.4 [OK] (primer punto de recuperacion).
+- A T=15 C, Q_WAS=128 (SRT~27d): S_NH=1.0 [OK] PERO TN=19.1 [!!] (exceso de biomasa N).
+  La ventana optima a 15C es Q_WAS en rango 150-250 m3/d (SRT 15-25d).
+- A T=10 C, Q_WAS=192 (SRT~24d): S_NH=5.3 [!!] (la planta no puede nitrificar a 10C
+  con el SRT de diseno). Requiere calefaccion o ampliacion de reactores.
+- Pre_check advierte cuando T <= 16C y SRT estimado < umbral (formula en engine.py).
+
+**DBO5 con decantador pequeno:**
+- Area=500 m2 (SOR=3.1 m/h): BOD5=15.4 [!!] aunque TSS=28.6 [OK justo].
+- La DBO5 incluye biomasa activa (X_BH) que escapa. Un operador que solo monitorice SST
+  puede no detectar el incumplimiento de DBO5.
+
+**COD bajo y relacion C:N:**
+- COD=200 mg/L con TKN=51.35 (C:N=3.9): S_NO=28.5, TN=31.5 [!!].
+- La desnitrificacion es C-limitada. La nitrificacion funciona bien (S_NH=1.1) pero NO3
+  no puede reducirse en A1/A2 por falta de carbono organico.
+- Limite practico: C:N > 5 para desnitrificacion completa en pre-desnitrificacion.
+
+### Avisos añadidos al pre_check (engine.py, 2026-04-02)
+
+| Condicion | Umbral | Mensaje |
+|-----------|--------|---------|
+| Q_intr/Q > 5 | 5x Q | TRH anoxico corto, desnitrificacion empeora |
+| DO_O3 + Q_intr | DO_O3>1.0 y Q_intr>2Q | Contaminacion anoxica via recirculacion |
+| COD_total alto | >450 mg/L | Riesgo starvation O2 para nitrificadores |
+| Temperatura baja + SRT corto | T<=16C y SRT<umbral | Nitrificacion insuficiente en invierno |

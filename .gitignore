@@ -29,3 +29,16 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
+
+# Test artifacts
+test_*.xlsx
+test_*_result.json
+
+# Generated artifacts
+BSM1_system_diagram.html
+
+# Pytest cache
+.pytest_cache/
+
+# Docker / simulation results
+results/

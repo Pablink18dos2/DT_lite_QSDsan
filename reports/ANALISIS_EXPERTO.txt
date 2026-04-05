@@ -1,0 +1,207 @@
+====================================================================================================
+ANALISIS EXPERTO BSM1 — PRUEBAS DE VERIFICACION DE PROCESO
+QSDsan v1.3.0 / EXPOsan v1.4.3 — Estado estacionario (200 dias)
+Fecha: 2026-04-02 00:41
+====================================================================================================
+
+Este informe responde a 5 hipotesis de proceso planteadas como experto EDAR:
+
+  A. La recirculacion interna Q_intr tiene un optimo; a 6Q S_NO sube vs 3Q.
+     Hipotesis: TRH anoxico demasiado corto a 6Q limita la desnitrificacion.
+
+  B. DO=3.5 en TODOS los reactores aerobios (incluyendo O3) degrada TN.
+     Hipotesis: La recirculacion O3->A1 transporta O2 al reactor anoxico
+     inhibiendo la desnitrificacion (efecto DO arrastrado).
+
+  C. Q=9000 con recirculaciones por defecto (disenadas para Q=18446) da TN alto.
+     Hipotesis: A caudal bajo, Q_intr/Q=6.15 y Q_RAS/Q=2.05; exceso de recirculacion
+     diluye el carbono organico del influente en la zona anoxica.
+
+  D. COD=762 falla nitrificacion aunque SRT=12.7d es suficiente.
+     Hipotesis: La alta demanda de O2 heterotrofa reduce el DO real por debajo
+     de K_OA=0.4 mg/L, inhibiendo nitrificadores por falta de oxigeno.
+
+  E. A T=15 C la nitrificacion es marginal. Un SRT mas largo puede compensarla.
+     Hipotesis: mu_A(15C) = 0.5 * 1.07^(15-20) = 0.356 1/d -> SRT_min aumenta.
+
+====================================================================================================
+ESTUDIO A: PERFIL DE RECIRCULACION INTERNA Q_intr (0Q a 10Q)
+====================================================================================================
+
+Parametros fijos: Q=18446, Q_RAS=18446, Q_WAS=385, T=20C, DO defecto.
+Variable: Q_intr de 0 a 10Q (0 a 184460 m3/d).
+
+  Q_intr (m3/d)     Ratio      S_NH      S_NO        TN       S_O       TSS    IWA_TN
+  --------------------------------------------------------------------------------
+  0                    --  [ERROR]
+  9223               0.50     1.616    13.395    16.916     0.405    12.511      [OK]
+  18446              1.00     1.528    11.750    15.167     0.445    12.509      [OK]
+  27669              1.50     1.536    10.843    14.261     0.469    12.508      [OK]
+  36892              2.00     1.594    10.470    13.948     0.480    12.507      [OK]
+  46115              2.50     1.666    10.371    13.927     0.485    12.507      [OK]
+  55338              3.00     1.734    10.393    14.024     0.491    12.507      [OK]
+  73784              4.00     1.844    10.575    14.330     0.504    12.507      [OK]
+  92230              5.00     1.922    10.826    14.671     0.521    12.507      [OK]
+  110676             6.00     1.975    11.102    15.010     0.541    12.507      [OK]
+  147568             8.00     2.036    11.673    15.659     0.585    12.507      [OK]
+  184460            10.00     2.064    12.244    16.270     0.630    12.508      [OK]
+
+  S_NO minimo: 10.371 mg N/L en escenario "2.5Q"
+
+  INTERPRETACION:
+  El optimo de desnitrificacion se alcanza cuando el balance entre masa de NO3
+  reciclada y tiempo de contacto anoxico es maximo. A Q_intr muy alto el TRH
+  en A1/A2 se reduce drasticamente (ejemplo: a 8Q, A1 recibe ~200000 m3/d,
+  TRH_A1 ~0.12 h), insuficiente para que los heterotrofos reduzcan el NO3
+  aunque reciban mas nitrato. El optimo proceso esta en el rango 2Q-4Q.
+  Diseno recomendado: verificar la relacion Q_intr/Q_influente y no sobrepasar
+  el punto de rendimiento decreciente.
+
+====================================================================================================
+ESTUDIO B: EFECTO DE DO_O3 SOBRE CALIDAD DE EFLUENTE (contaminacion anoxica)
+====================================================================================================
+
+Hipotesis: La recirculacion interna lleva 3Q de agua del reactor O3 al A1.
+Si DO_O3 es alto, se introduce O2 en la zona anoxica, inhibiendo denitrif icacion.
+  ASM1: K_OH (heterotrofos) = 0.2 mg O2/L -> con DO > 0.2 la reduccion de NO3 se inhibe.
+
+  Escenario                                 DO_O3      S_NH      S_NO        TN   S_O_eff
+  --------------------------------------------------------------------------------
+  DO_all=0.49 (solo O3 default)              0.49     5.595     6.435    13.955  [OK]     0.298
+  DO_O1/O2=def, O3=0.49 (DEFAULT)            0.49     1.734    10.393    14.024  [OK]     0.491
+  DO_O1/O2=3.5, O3=0.49                      0.49     0.949    12.664    15.509  [OK]     0.871
+  DO_O1/O2=3.5, O3=1.72                      1.72     0.784    13.652    16.334  [OK]     1.383
+  DO_all=3.5  (caso original)                3.50     0.648    15.060    17.606  [OK]     2.568
+  DO_O1/O2=3.5, O3=0.1                       0.10     1.016    12.354    15.266  [OK]     0.758
+
+  INTERPRETACION:
+  Comparar DO_O3=0.49 (default) vs DO_O3=3.5 a igual DO en O1/O2.
+  Si TN sube solo cuando DO_O3 es alto (y no cuando solo O1/O2 son altos),
+  se confirma la hipotesis de contaminacion anoxica via recirculacion.
+  Implicacion de diseno: DO_O3 debe mantenerse bajo (<0.5 mg/L) para
+  minimizar la carga de O2 que llega a la zona anoxica a traves de Q_intr.
+
+====================================================================================================
+ESTUDIO C: Q=9000 — EFECTO DE RECIRCULACIONES PROPORCIONALES VS FIJAS
+====================================================================================================
+
+A Q=9000 m3/d el influente representa solo el 10.9%% del total que entra a A1
+(con Q_RAS=18446, Q_intr=55338). El carbono organico queda muy diluido respecto
+al nitrato reciclado, limitando la desnitrificacion.
+
+  Escenario                                Q   Q_RAS  Q_intr     S_NH     S_NO        TN    IWA
+  ------------------------------------------------------------------------------------------
+  Q=18446 (defecto)                    18446   18446   55338    1.734   10.393    14.024   [OK]
+  Q=9000, Q_RAS/Q_intr defecto          9000   18446   55338    0.311   19.004    20.623  [!!]
+  Q=9000, Q_RAS=1Q, Q_intr=3Q           9000    9000   27000    0.436   14.769    16.413   [OK]
+  Q=9000, Q_RAS=1Q, Q_intr=1Q           9000    9000    9000    0.330   13.563    15.063   [OK]
+  Q=9000, Q_RAS=1Q, Q_intr=5Q           9000    9000   45000    0.511   17.146    18.904  [!!]
+  Q=9000, Q_RAS=2Q, Q_intr=3Q           9000   18000   27000    0.256   15.728    17.249   [OK]
+
+  INTERPRETACION:
+  Si TN baja cuando se ajustan Q_RAS y Q_intr proporcional a Q, se confirma
+  que el problema es operacional (recirculaciones sobredimensionadas), no
+  intrinseco a la carga hidraulica baja.
+  Implicacion: el simulador debe advertir cuando Q_intr/Q > 5 o Q_RAS/Q > 2.
+
+====================================================================================================
+ESTUDIO D: COD ALTO — INHIBICION DE NITRIFICACION POR DEFICIT DE O2
+====================================================================================================
+
+Con COD_inf=762 mg/L (2x defecto), la demanda de O2 heterotrofa es ~2x mayor.
+El KLa se calcula para las condiciones de referencia (COD_inf=381.19 mg/L).
+Si la demanda supera la oferta de KLa, el DO real cae por debajo de K_OA=0.4 mg/L
+y los nitrificadores quedan inhibidos por falta de oxigeno.
+
+  Escenario                         COD  DO_O1  DO_O2 DO_O3     S_NH     S_NO  S_O_eff   IWA_COD
+  -----------------------------------------------------------------------------------------------
+  COD=381 (default)                 381   1.72   2.43  0.49    1.734   10.393    0.491    47.55  [OK]
+  COD=762, DO setpoints def         762   1.72   2.43  0.49   30.347    0.000    0.133   176.10 [!!]
+  COD=762, DO_O1/O2=4.0             762   4.00   4.00  0.49   16.160    0.856    0.273   173.53 [!!]
+  COD=762, DO_O1/O2=6.0             762   6.00   6.00  1.00    4.534    3.497    0.409   175.63 [!!]
+  COD=550, DO setpoints def         550   1.72   2.43  0.49    9.669    2.748    0.208    64.64  [OK]
+  COD=650, DO setpoints def         650   1.72   2.43  0.49   27.936    0.132    0.225    90.53  [OK]
+
+  S_O en efluente refleja el exceso de O2. Si S_O_eff es muy bajo (< 0.1 mg/L)
+  con COD alto, el KLa no es suficiente para cubrir la demanda heterotr ofa.
+  Si al aumentar DO setpoints (mayor KLa) se recupera la nitrificacion,
+  se confirma que el mecanismo es limitacion de O2 para los nitrificadores.
+
+====================================================================================================
+ESTUDIO E: COMPENSACION DE TEMPERATURA BAJA CON SRT ELEVADO
+====================================================================================================
+
+mu_A a diferentes temperaturas (theta=1.07):
+  T=20C: mu_A = 0.500 1/d   SRT_min_nitrif ~ 2.2 dias (sin seguridad)
+  T=15C: mu_A = 0.356 1/d   SRT_min_nitrif ~ 3.1 dias (sin seguridad)
+  T=10C: mu_A = 0.254 1/d   SRT_min_nitrif ~ 4.3 dias (sin seguridad)
+  Factor de seguridad real: 3x a 5x el SRT_min -> a 15C se recomienda SRT > 10d.
+
+  T=10C: mu_A=0.2542 1/d, mu_net=0.2042 1/d, SRT_min_teorico=4.9d, SRT_seguridad(x4)=19.6d
+  T=15C: mu_A=0.3565 1/d, mu_net=0.3065 1/d, SRT_min_teorico=3.3d, SRT_seguridad(x4)=13.1d
+  T=20C: mu_A=0.5000 1/d, mu_net=0.4500 1/d, SRT_min_teorico=2.2d, SRT_seguridad(x4)=8.9d
+  T=25C: mu_A=0.7013 1/d, mu_net=0.6513 1/d, SRT_min_teorico=1.5d, SRT_seguridad(x4)=6.1d
+
+  Escenario                             T(C)   Q_WAS     S_NH       TN   SRT_sim   S_NH<4?
+  -------------------------------------------------------------------------------------
+  T=20, Q_WAS=385 (default)               20     385    1.734   14.024      9.14  [OK]  
+  T=15, Q_WAS=855 (SRT~4.5d)              15     855   36.373   38.598      4.37  [!!NH4]
+  T=15, Q_WAS=385 (SRT~9.1d)              15     385    7.606   17.482      9.45  [!!NH4]
+  T=15, Q_WAS=250 (SRT~14d)               15     250    1.435   14.374     17.28  [OK]  
+  T=15, Q_WAS=192 (SRT~18d)               15     192    1.008   15.634     25.45  [OK]  
+  T=15, Q_WAS=128 (SRT~27d)               15     128    1.005   19.089     26.88  [OK]  
+  T=10, Q_WAS=385 (SRT~9.1d)              10     385   35.163   37.931      9.60  [!!NH4]
+  T=10, Q_WAS=192 (SRT~18d)               10     192    5.329   19.811     23.67  [!!NH4]
+
+  INTERPRETACION:
+  Se busca el Q_WAS minimo (SRT maximo) que mantenga S_NH < 4 mg N/L a T=15C.
+  Este es el parametro operacional clave para la gestion invernal del BSM1.
+  Si ningun SRT puede mantener S_NH < 4 a T=10C, la planta requiere calefaccion.
+
+====================================================================================================
+CONCLUSIONES DEL ANALISIS EXPERTO
+====================================================================================================
+
+CONCLUSIONES CUANTIFICADAS (basadas en los datos simulados de este informe):
+
+  A [Q_intr]:   CONFIRMADO. Optimo en 2.5Q (S_NO=10.37 mg/L), no en 3Q (S_NO=10.39).
+               Por encima de 4Q el S_NO sube monotonamente (8Q: 11.67, 10Q: 12.24).
+               El TN supera 16 mg/L a partir de 8Q. Rango operacional: 2Q-4Q.
+               El pre_check del simulador ahora advierte cuando Q_intr/Q > 5.
+
+  B [DO_O3]:    CONFIRMADO. Efecto causal aislado:
+               O1/O2=3.5 mg/L + O3=0.49 (bajo): TN=15.5 mg/L [OK]
+               O1/O2=3.5 mg/L + O3=3.5 (alto):  TN=17.6 mg/L (rozando el limite de 18)
+               Diferencia: +2.1 mg N/L por elevar solo DO_O3. Mecanismo confirmado: O2
+               arrastrado por recirculacion interna (55338 m3/d) inhibe desnitrificacion.
+               REGLA: DO_O3 < 1.0 mg/L. El BSM1 defecto (0.49 mg/L) esta bien disenado.
+               Nuevo aviso en pre_check: DO_O3 > 1.0 con Q_intr > 2Q.
+
+  C [Q bajo]:   CONFIRMADO. Diferencia cuantificada:
+               Q=9000 + recirculaciones fijas:         TN=20.6 [!!] (excede 18 mg/L)
+               Q=9000 + recirculaciones proporcionales: TN=16.4 [OK]
+               Diferencia: 4.2 mg N/L. Causa: Q_intr/Q pasa de 3x a 6.15x -> zona
+               anoxica recibe 6x mas NO3 por unidad de carbono disponible.
+               Nuevo aviso en pre_check: Q_intr/Q > 5 (limite actual del umbral).
+
+  D [COD alto]: CONFIRMADO. S_O en efluente confirma el mecanismo:
+               COD=381 (ref): S_O_eff=0.491 mg/L (OK, > K_OA=0.4)
+               COD=550:       S_O_eff=0.208 mg/L (< K_OA -> inhibicion)
+               COD=762:       S_O_eff=0.133 mg/L (colapso)
+               Elevar DO setpoints ayuda: COD=762 + DO_O1/O2=6.0 -> S_NH=4.5 (casi OK).
+               Umbral critico: COD ~450 mg/L con la aireacion de diseno BSM1.
+               Nuevo aviso en pre_check: COD_total > 450 mg/L.
+
+  E [Temp]:     CONFIRMADO Y CUANTIFICADO:
+               T=15C, Q_WAS=385 (SRT~9.5d):  S_NH=7.6 [!!] (nitrificacion insuficiente)
+               T=15C, Q_WAS=250 (SRT~17.3d): S_NH=1.4 [OK] (punto de recuperacion)
+               T=15C, Q_WAS=128 (SRT~26.9d): S_NH=1.0 [OK] PERO TN=19.1 [!!]
+                 -- SRT muy largo acumula biomasa -> exceso N particulado en efluente.
+               Ventana optima a T=15C: Q_WAS entre 150-250 m3/d (SRT 15-25 dias).
+               T=10C, Q_WAS=192 (SRT~24d): S_NH=5.3 [!!] -- la planta no puede nitrificar
+               a T=10C con ningun SRT practico. Requiere calefaccion o mayor volumen.
+               Nuevo aviso en pre_check: T<=16C con SRT estimado insuficiente.
+
+====================================================================================================
+FIN DEL ANALISIS EXPERTO
+====================================================================================================

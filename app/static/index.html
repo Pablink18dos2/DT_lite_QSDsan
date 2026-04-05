@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BSM1 Simulator - Digital Twin lite</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            /* Fondos (oscuro a claro) — paleta ui-design.md */
+            --bg: #1a2226;
+            --input-bg: #2c3336;
+            --surface-header: #373f44;
+            --surface2: #3f484d;
+            --surface: #444e54;
+            --border: #5e686c;
+            /* Texto */
+            --text: #fafafa;
+            --text-muted: rgba(250, 250, 250, 0.55);
+            /* Acento / valores de medicion */
+            --accent: #9cc2e4;
+            --accent-hover: #bcd8ef;
+            /* Estados ui-design.md */
+            --green: #92ba7b;
+            --green-bg: #53645e;
+            --red: #e37272;
+            --red-bg: #63555a;
+            --yellow: #d4a843;
+            --yellow-bg: #6b6040;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+        .header {
+            background: linear-gradient(135deg, var(--surface-header) 0%, var(--bg) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 { font-size: 20px; font-weight: 600; color: var(--accent); }
+        .header .subtitle { font-size: 12px; color: var(--text-muted); }
+        .health-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .health-ok { background: var(--green-bg); color: var(--green); }
+        .health-err { background: var(--red-bg); color: var(--red); }
+        .health-loading { background: var(--yellow-bg); color: var(--yellow); }
+
+        .main { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 57px); }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 16px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        .endpoint-btn {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            cursor: pointer;
+            text-align: left;
+            font-size: 13px;
+            transition: all 0.15s;
+        }
+        .endpoint-btn:hover { border-color: var(--accent); }
+        .endpoint-btn.active { border-color: var(--accent); background: rgba(156, 194, 228, 0.12); }
+        .method-tag {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-right: 6px;
+        }
+        .method-get { background: var(--green-bg); color: var(--green); }
+        .method-post { background: rgba(156, 194, 228, 0.2); color: var(--accent); }
+
+        .params-section { margin-top: 16px; }
+        .param-group { margin-bottom: 10px; }
+        .param-group label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .param-group input, .param-group select, .param-group textarea {
+            width: 100%;
+            padding: 7px 10px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 13px;
+        }
+        .param-group input:focus, .param-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .param-group input.invalid {
+            border-color: var(--red);
+            background: var(--red-bg);
+        }
+        .param-group textarea { min-height: 120px; font-family: monospace; font-size: 12px; resize: vertical; }
+        .param-group input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .param-hint { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+        .param-error { font-size: 10px; color: var(--red); margin-top: 2px; }
+
+        .run-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            background: var(--accent);
+            color: #1a2226;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .run-btn:hover { background: var(--accent-hover); }
+        .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .reset-btn {
+            width: 100%;
+            padding: 6px;
+            margin-top: 6px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .reset-btn:hover { border-color: var(--text-muted); color: var(--text); }
+
+        /* Collapsible sections */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 10px;
+            margin-top: 12px;
+        }
+        .section-header h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Open Sans', sans-serif;
+        }
+        .section-header .arrow {
+            font-size: 10px;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+        }
+        .section-header.collapsed .arrow { transform: rotate(-90deg); }
+        .section-body { overflow: hidden; }
+        .section-body.collapsed { display: none; }
+
+        /* Radio toggle */
+        .radio-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .radio-option {
+            flex: 1;
+            padding: 6px 10px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .radio-option.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(156, 194, 228, 0.12);
+        }
+
+        /* Warnings */
+        .warnings-box {
+            background: var(--yellow-bg);
+            border: 1px solid var(--yellow);
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--yellow);
+        }
+        .warnings-box ul { padding-left: 16px; margin: 4px 0 0 0; }
+
+        /* Read-only info row */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(94, 104, 108, 0.35);
+        }
+        .info-row .info-val { color: var(--accent); font-family: 'Courier New', monospace; }
+
+        /* Content area */
+        .content { padding: 24px; overflow-y: auto; }
+        .result-header { margin-bottom: 16px; }
+        .result-header h2 { font-size: 18px; color: var(--text); }
+        .result-meta { font-size: 12px; color: var(--text-muted); }
+
+        .status-bar {
+            display: flex;
+            gap: 24px;
+            background: var(--surface-header);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 24px;
+            margin-bottom: 16px;
+        }
+        .status-item .value { font-size: 24px; font-weight: 600; color: var(--accent); font-family: 'Courier New', monospace; }
+        .status-item .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+
+        .comp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .comp-table th { text-align: left; padding: 8px; background: var(--surface-header); color: var(--text-muted); font-size: 11px; text-transform: uppercase; }
+        .comp-table td { padding: 8px; border-bottom: 1px solid var(--surface2); }
+        .pass-tag { padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+        .tag-pass { background: var(--green-bg); color: var(--green); }
+        .tag-fail { background: var(--red-bg); color: var(--red); }
+
+        .agg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+        .agg-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+        .agg-card.agg-ok { border-color: var(--green); background: var(--green-bg); }
+        .agg-card.agg-warn { border-color: var(--red); background: var(--red-bg); }
+        .agg-value { font-size: 20px; font-weight: 600; color: var(--accent); font-family: 'Courier New', monospace; }
+        .agg-label { font-size: 11px; color: var(--text-muted); }
+
+        .json-viewer { background: var(--surface-header); border: 1px solid var(--border); border-radius: 6px; padding: 16px; font-family: 'Courier New', monospace; font-size: 12px; white-space: pre-wrap; overflow-x: auto; color: var(--accent); }
+        .diagram-box { font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-muted); white-space: pre; line-height: 1.4; padding: 12px; background: var(--surface-header); border-radius: 6px; border: 1px solid var(--border); }
+
+        .welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .welcome h2 { color: var(--text); margin-bottom: 8px; font-size: 18px; }
+        .welcome p { font-size: 14px; max-width: 400px; }
+
+        .spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-box {
+            background: var(--red-bg);
+            border: 1px solid var(--red);
+            border-radius: 6px;
+            padding: 12px 16px;
+            color: var(--red);
+            margin-bottom: 16px;
+        }
+
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+        .tab-btn {
+            padding: 6px 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Open Sans', sans-serif;
+        }
+        .tab-btn.active { background: var(--accent); color: #1a2226; border-color: var(--accent); font-weight: 600; }
+
+        /* Two-column param layout */
+        .param-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        /* ===== HISTORIAL DE SIMULACIONES ===== */
+        .hist-panel {
+            margin-top: 16px;
+            border-top: 1px solid var(--border);
+            padding-top: 4px;
+        }
+        .hist-card {
+            background: var(--surface-header);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 6px;
+            transition: background 0.15s;
+        }
+        .hist-card:hover { background: var(--surface); }
+        .hist-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .hist-label input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: var(--accent);
+            flex-shrink: 0;
+        }
+        .hist-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 240px;
+        }
+        .hist-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 4px;
+        }
+        .hist-pass {
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        /* Estado Normal */
+        .hist-pass.ok { background: var(--green-bg); color: var(--green); }
+        /* Estado Alarma */
+        .hist-pass.fail { background: var(--red-bg); color: var(--red); }
+        .hist-ts {
+            font-size: 10px;
+            color: var(--accent);
+            opacity: 0.7;
+            font-family: 'Courier New', monospace;
+        }
+        .hist-kpis {
+            margin-top: 4px;
+            font-size: 10px;
+            color: var(--accent);
+            font-family: 'Courier New', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .hist-empty {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 12px 0;
+            text-align: center;
+        }
+        .hist-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            background: var(--border);
+            color: var(--text);
+            border-radius: 9px;
+            font-size: 10px;
+            font-weight: 600;
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+        .btn-compare {
+            width: 100%;
+            padding: 8px;
+            background: var(--accent);
+            color: #1a2226;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Open Sans', sans-serif;
+            margin-top: 8px;
+            display: none;
+        }
+        .btn-compare:hover { background: var(--accent-hover); }
+        .btn-clear-hist {
+            width: 100%;
+            padding: 5px;
+            margin-top: 4px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: 'Open Sans', sans-serif;
+        }
+        .btn-clear-hist:hover { border-color: var(--red); color: var(--red); }
+        /* Campo nombre con borde inferior accent */
+        .sim-name-input {
+            border-bottom: 2px solid var(--accent) !important;
+            font-style: italic;
+            color: var(--accent) !important;
+        }
+        .sim-name-input::placeholder { color: var(--border); font-style: italic; }
+
+        /* ===== VISTA DE COMPARACION ===== */
+        .comp-view-wrap {
+            background: var(--surface);
+            border-top: 2px solid var(--accent);
+            border-radius: 0 0 8px 8px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+        .comp-view-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .comp-view-header h2 {
+            font-size: 16px;
+            color: var(--text);
+        }
+        .comp-view-header h2 span { color: var(--accent); }
+        .btn-close-comp {
+            padding: 6px 14px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: 'Open Sans', sans-serif;
+        }
+        .btn-close-comp:hover { border-color: var(--red); color: var(--red); }
+        .comp-section { margin-bottom: 24px; }
+        .comp-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+            font-family: 'Open Sans', sans-serif;
+        }
+        /* Tabla de comparacion */
+        .ctable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            font-family: 'Open Sans', sans-serif;
+        }
+        .ctable th {
+            background: var(--surface-header);
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px;
+            text-align: left;
+        }
+        .ctable th.sim-col {
+            color: var(--accent);
+            background: var(--surface2);
+        }
+        .ctable td {
+            padding: 7px 8px;
+            border-bottom: 1px solid var(--surface2);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+        }
+        .ctable td.label-col { font-family: 'Open Sans', sans-serif; color: var(--text-muted); }
+        .ctable tr:nth-child(even) td { background: rgba(63,72,77,0.4); }
+        /* Semantica de celdas — ui-design.md */
+        .td-diff { background: rgba(156,194,228,0.14) !important; color: var(--accent) !important; font-weight: 600; }
+        /* Alarma: supera limite IWA */
+        .td-alarm { background: var(--red-bg) !important; color: var(--red) !important; font-weight: 600; }
+        /* Normal: dentro de tolerancia IWA */
+        .td-good { background: var(--green-bg) !important; color: var(--green) !important; }
+        /* Warning: cercano al limite */
+        .td-warn { background: var(--yellow-bg) !important; color: var(--yellow) !important; }
+        .ctable-wrap { overflow-x: auto; }
+        /* Graficas Chart.js */
+        .chart-container {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 16px;
+            position: relative;
+            height: 320px;
+        }
+        .comp-legend-note {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>BSM1 Simulator</h1>
+            <span class="subtitle">Digital Twin lite - IWA Benchmark (Jeppsson, 2008)</span>
+        </div>
+        <div id="healthBadge" class="health-badge health-loading">checking...</div>
+    </div>
+
+    <div class="main">
+        <div class="sidebar">
+            <h2>Endpoints</h2>
+
+            <button class="endpoint-btn" onclick="selectEndpoint('health')" id="btn-health">
+                <span class="method-tag method-get">GET</span> /health
+            </button>
+            <button class="endpoint-btn" onclick="selectEndpoint('reference')" id="btn-reference">
+                <span class="method-tag method-get">GET</span> /reference/iwa
+            </button>
+            <button class="endpoint-btn" onclick="selectEndpoint('simulate')" id="btn-simulate">
+                <span class="method-tag method-post">POST</span> /simulate/steady-state
+            </button>
+            <button class="endpoint-btn" onclick="selectEndpoint('latest')" id="btn-latest">
+                <span class="method-tag method-get">GET</span> /results/latest
+            </button>
+            <button class="endpoint-btn" onclick="selectEndpoint('validate')" id="btn-validate">
+                <span class="method-tag method-post">POST</span> /validate
+            </button>
+
+            <div id="paramsPanel" class="params-section" style="display:none;"></div>
+
+            <!-- Panel de historial de simulaciones -->
+            <div class="hist-panel">
+                <div class="section-header" onclick="toggleSection('sec-hist', this)">
+                    <h3>Historial <span id="hist-count" class="hist-badge">0</span></h3>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <button id="btnSelectAll" onclick="event.stopPropagation();toggleSelectAll()" style="font-size:11px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:3px;cursor:pointer;">Sel. todas</button>
+                        <span class="arrow">&#9660;</span>
+                    </div>
+                </div>
+                <div id="sec-hist" class="section-body">
+                    <div id="historyList">
+                        <div class="hist-empty">Sin simulaciones guardadas</div>
+                    </div>
+                    <button id="btnCompare" class="btn-compare" onclick="showComparison()">
+                        Comparar seleccionadas
+                    </button>
+                    <button id="btnClearHistory" class="btn-clear-hist" onclick="clearHistoryUI()">
+                        Borrar historial
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content" id="content">
+            <!-- Resultados de simulacion (se reemplaza con cada ejecucion) -->
+            <div id="resultArea">
+                <div class="welcome">
+                    <h2>BSM1 Simulator API</h2>
+                    <p>Selecciona un endpoint de la barra lateral para interactuar con el simulador BSM1.</p>
+                    <div class="diagram-box" style="margin-top: 24px; text-align: left;">
+      Q_intr = 55338 m3/d (3Q)
+      .-----------------------------------------------.
+      |                                               |
+      v                                               |
+Q -->[A1]--->[A2]--->[O1]--->[O2]--->[O3]---------->[C1]---> Effluent
+18446  ^   1000m3  1000m3  1333m3  1333m3  1333m3     |  18061 m3/d
+m3/d   |   anoxic  anoxic  DO=1.72 DO=2.43 DO=0.49    |
+       |                                               |
+       '------------ RAS = 18446 m3/d (1Q) -----------'
+                                                       |
+                                            WAS = 385 m3/d</div>
+                </div>
+            </div>
+
+            <!-- Vista de comparacion (persistente, no se borra al ejecutar simulaciones) -->
+            <div id="compView" style="display:none;">
+                <div class="comp-view-wrap">
+                    <div class="comp-view-header">
+                        <h2 id="compTitle">Comparacion de <span id="compSimCount">2</span> simulaciones</h2>
+                        <button class="btn-close-comp" onclick="closeComparison()">&#10005; Cerrar comparacion</button>
+                    </div>
+
+                    <!-- Seccion 1: Parametros modificados -->
+                    <div class="comp-section">
+                        <div class="comp-section-title">1. Parametros modificados</div>
+                        <div id="compParamTable" class="ctable-wrap"></div>
+                    </div>
+
+                    <!-- Seccion 2: Resultados efluente -->
+                    <div class="comp-section">
+                        <div class="comp-section-title">2. Resultados de efluente</div>
+                        <div id="compResultTable" class="ctable-wrap"></div>
+                        <p class="comp-legend-note">
+                            Colores: <span style="color:var(--red)">&#9632;</span> supera limite IWA &nbsp;
+                            <span style="color:var(--yellow)">&#9632;</span> cercano al limite (&gt;80%) &nbsp;
+                            <span style="color:var(--green)">&#9632;</span> dentro de tolerancia IWA (&plusmn;5%)
+                        </p>
+                    </div>
+
+                    <!-- Seccion 3: Graficas comparativas -->
+                    <div class="comp-section">
+                        <div class="comp-section-title">3. Graficas comparativas</div>
+                        <div class="tabs">
+                            <button class="tab-btn active" onclick="showCompTab(this,'cTab1')">Nitrogeno</button>
+                            <button class="tab-btn" onclick="showCompTab(this,'cTab2')">COD y DBO5</button>
+                            <button class="tab-btn" onclick="showCompTab(this,'cTab3')">Solidos</button>
+                            <button class="tab-btn" onclick="showCompTab(this,'cTab4')">SRT</button>
+                            <button class="tab-btn" onclick="showCompTab(this,'cTab5')">Eliminacion %</button>
+                        </div>
+                        <div id="cTab1" class="chart-container"><canvas id="chartNitrogen"></canvas></div>
+                        <div id="cTab2" class="chart-container" style="display:none;"><canvas id="chartCOD"></canvas></div>
+                        <div id="cTab3" class="chart-container" style="display:none;"><canvas id="chartSolids"></canvas></div>
+                        <div id="cTab4" class="chart-container" style="display:none;"><canvas id="chartProcess"></canvas></div>
+                        <div id="cTab5" class="chart-container" style="display:none;"><canvas id="chartRemoval"></canvas></div>
+                        <p class="comp-legend-note">
+                            Barras en <span style="color:var(--red)">rojo</span> = valor supera limite IWA.
+                            Linea gris discontinua = referencia IWA estado estacionario.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const API = '';
+    let currentEndpoint = null;
+    let plantDefaults = {};
+    let sludgeMode = 'WAS';
+    let aerationMode = 'DO';
+    let _lastPlant = null;
+    let _chartInstances = [];
+
+    // --- History constants ---
+    const HIST_KEY = 'bsm1_sim_history';
+    const HIST_MAX = 5;
+
+    // --- Colores de simulacion (paleta ui-design.md) ---
+    const SIM_COLORS_FILL = [
+        'rgba(156,194,228,0.80)',   // #9cc2e4 accent
+        'rgba(146,186,123,0.80)',   // #92ba7b verde Normal
+        'rgba(212,168,67, 0.80)',   // #d4a843 amarillo Warning
+        'rgba(227,114,114,0.80)',   // #e37272 rojo Alarma
+        'rgba(94, 104,108,0.80)',   // #5e686c gris borde
+    ];
+    const SIM_BORDERS = ['#9cc2e4','#92ba7b','#d4a843','#e37272','#5e686c'];
+
+    // --- Referencias IWA para graficas ---
+    const IWA_SS_REF = {
+        S_I:30.0, S_S:0.889, X_I:4.392, X_S:0.188,
+        X_BH:9.782, X_BA:0.573, X_P:1.728,
+        S_O:0.491, S_NO:10.415, S_NH:1.733,
+        S_ND:0.688, X_ND:0.013, S_ALK:4.126, TSS:12.497
+    };
+    const IWA_LIMITS = { S_NH:4.0, COD_total:100, TN_total:18, BOD5:10, TSS:30 };
+
+    // --- Health check on load ---
+    async function checkHealth() {
+        const badge = document.getElementById('healthBadge');
+        try {
+            const r = await fetch(API + '/health');
+            const d = await r.json();
+            badge.textContent = `QSDsan ${d.qsdsan_version} | Py ${d.python_version}`;
+            badge.className = 'health-badge health-ok';
+        } catch (e) {
+            badge.textContent = 'API offline';
+            badge.className = 'health-badge health-err';
+        }
+    }
+    checkHealth();
+
+    // --- Load plant defaults from API ---
+    async function loadDefaults() {
+        try {
+            const r = await fetch(API + '/defaults/plant');
+            plantDefaults = await r.json();
+        } catch (e) {
+            plantDefaults = {};
+        }
+    }
+    loadDefaults();
+
+    // --- localStorage helpers (parametros) ---
+    const LS_KEY = 'bsm1_plant_params';
+    function saveParams() {
+        const params = collectPlantParams();
+        if (params) localStorage.setItem(LS_KEY, JSON.stringify(params));
+    }
+    function loadSavedParams() {
+        try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch { return null; }
+    }
+    function clearSavedParams() {
+        localStorage.removeItem(LS_KEY);
+    }
+
+    // ===== HISTORIAL DE SIMULACIONES =====
+    function saveToHistory(name, result, plant) {
+        let history = getHistory();
+        history.unshift({ id: Date.now(), name, result, plant });
+        history = history.slice(0, HIST_MAX);
+        try { localStorage.setItem(HIST_KEY, JSON.stringify(history)); } catch (e) {}
+    }
+
+    function getHistory() {
+        try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('historyList');
+        const counter = document.getElementById('hist-count');
+        if (!list) return;
+        const history = getHistory();
+        if (counter) counter.textContent = history.length;
+
+        if (history.length === 0) {
+            list.innerHTML = '<div class="hist-empty">Sin simulaciones guardadas</div>';
+            const btn = document.getElementById('btnCompare');
+            if (btn) btn.style.display = 'none';
+            return;
+        }
+
+        list.innerHTML = history.map((entry) => {
+            const ts = (entry.result.timestamp || '').slice(0, 16).replace('T', ' ');
+            const passCount = entry.result.pass_count || 0;
+            const totalCount = entry.result.total_count || 14;
+            const allPass = entry.result.all_passed;
+            const agg = entry.result.aggregates || {};
+            const comps = entry.result.components || [];
+            const snh = comps.find(c => c.component === 'S_NH');
+            const snhVal = snh ? snh.obtained.toFixed(2) : '-';
+            const tn = agg.TN_total != null ? agg.TN_total.toFixed(1) : '-';
+            const srt = agg.SRT_specific_days != null ? agg.SRT_specific_days.toFixed(1) : '-';
+
+            return `
+            <div class="hist-card" data-id="${entry.id}">
+                <label class="hist-label">
+                    <input type="checkbox" class="hist-cb" onchange="onHistoryCheck()">
+                    <span class="hist-name" title="${entry.name}">${entry.name}</span>
+                </label>
+                <div class="hist-meta">
+                    <span class="hist-pass ${allPass ? 'ok' : 'fail'}">${passCount}/${totalCount}</span>
+                    <span class="hist-ts">${ts}</span>
+                </div>
+                <div class="hist-kpis">S_NH=${snhVal} &middot; TN=${tn} &middot; SRT=${srt}d</div>
+            </div>`;
+        }).join('');
+
+        onHistoryCheck();
+    }
+
+    function clearHistoryUI() {
+        localStorage.removeItem(HIST_KEY);
+        renderHistory();
+        closeComparison();
+    }
+
+    function onHistoryCheck() {
+        const checked = document.querySelectorAll('.hist-cb:checked').length;
+        const total = document.querySelectorAll('.hist-cb').length;
+        const btn = document.getElementById('btnCompare');
+        if (btn) {
+            if (checked >= 2) {
+                btn.style.display = 'block';
+                btn.textContent = `Comparar seleccionadas (${checked})`;
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+        const selBtn = document.getElementById('btnSelectAll');
+        if (selBtn && total > 0) {
+            selBtn.textContent = checked === total ? 'Desel. todas' : 'Sel. todas';
+        }
+    }
+
+    function toggleSelectAll() {
+        const cbs = document.querySelectorAll('.hist-cb');
+        const allChecked = [...cbs].every(cb => cb.checked);
+        cbs.forEach(cb => { cb.checked = !allChecked; });
+        onHistoryCheck();
+    }
+
+    // ===== VISTA DE COMPARACION =====
+    function showComparison() {
+        const history = getHistory();
+        const checkedCards = [...document.querySelectorAll('.hist-card')].filter(
+            card => card.querySelector('.hist-cb:checked')
+        );
+        const sims = checkedCards.map(card => {
+            const id = parseInt(card.dataset.id);
+            return history.find(h => h.id === id);
+        }).filter(Boolean);
+
+        if (sims.length < 2) return;
+
+        destroyCharts();
+
+        document.getElementById('compSimCount').textContent = sims.length;
+
+        const cv = document.getElementById('compView');
+        cv.style.display = 'block';
+
+        document.getElementById('compParamTable').innerHTML = buildParamDiffTable(sims);
+        document.getElementById('compResultTable').innerHTML = buildResultsTable(sims);
+
+        buildComparisonCharts(sims);
+
+        setTimeout(() => {
+            _chartInstances.forEach(c => { try { c.resize(); } catch (e) {} });
+            cv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 60);
+    }
+
+    function closeComparison() {
+        destroyCharts();
+        const cv = document.getElementById('compView');
+        if (cv) cv.style.display = 'none';
+    }
+
+    function destroyCharts() {
+        _chartInstances.forEach(c => { try { c.destroy(); } catch (e) {} });
+        _chartInstances = [];
+    }
+
+    function showCompTab(btn, tabId) {
+        const parent = btn.parentElement;
+        parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        ['cTab1', 'cTab2', 'cTab3', 'cTab4', 'cTab5'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = id === tabId ? 'block' : 'none';
+        });
+        setTimeout(() => _chartInstances.forEach(c => { try { c.resize(); } catch (e) {} }), 10);
+    }
+
+    // --- Tabla de diferencias de parametros ---
+    const PARAM_LABELS = {
+        Q:'Q caudal (m3/d)', COD_total:'COD total (mg/L)', TKN:'TKN (mg N/L)',
+        TSS_inf:'TSS influente (mg/L)', V_anoxic:'V anoxico (m3)', V_aerobic:'V aerobico (m3)',
+        Clarifier_area:'Area decantador (m2)', Clarifier_height:'Altura decantador (m)',
+        Q_RAS:'Q RAS (m3/d)', Q_WAS:'Q WAS (m3/d)', SRT_target:'SRT objetivo (d)',
+        sludge_control:'Control lodos', Temperature:'Temperatura (C)',
+        DO_O1:'DO O1 (mg/L)', DO_O2:'DO O2 (mg/L)', DO_O3:'DO O3 (mg/L)',
+        DOsat:'DO sat (mg/L)', Q_intr:'Q interna (m3/d)',
+    };
+
+    function buildParamDiffTable(sims) {
+        const allKeys = Object.keys(PARAM_LABELS);
+        // Filas que difieren entre al menos dos simulaciones
+        const diffRows = allKeys.filter(key => {
+            const vals = sims.map(s => s.plant ? String(s.plant[key] ?? '') : '');
+            return vals.some(v => v !== vals[0]);
+        });
+
+        if (diffRows.length === 0) {
+            return '<p style="font-size:12px; color:var(--text-muted); padding:8px 0;">Todos los parametros son identicos en las simulaciones seleccionadas.</p>';
+        }
+
+        const refSim = sims[0];
+        const simHeaders = sims.map((s, i) =>
+            `<th class="sim-col" style="color:${SIM_BORDERS[i % SIM_BORDERS.length]}">${escHtml(s.name)}</th>`
+        ).join('');
+
+        const rows = diffRows.map(key => {
+            const refVal = refSim.plant ? String(refSim.plant[key] ?? '-') : '-';
+            const cells = sims.map((s, i) => {
+                const val = s.plant ? String(s.plant[key] ?? '-') : '-';
+                const isDiff = i > 0 && val !== refVal;
+                const cls = isDiff ? 'td-diff' : '';
+                return `<td class="${cls}">${escHtml(val)}</td>`;
+            }).join('');
+            return `<tr><td class="label-col">${PARAM_LABELS[key] || key}</td>${cells}</tr>`;
+        }).join('');
+
+        return `<table class="ctable">
+            <thead><tr><th>Parametro</th>${simHeaders}</tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    // --- Tabla de resultados de efluente ---
+    function buildResultsTable(sims) {
+        const compRows = [
+            { key:'S_I',  label:'S_I',   unit:'mg COD/L', ref: IWA_SS_REF.S_I },
+            { key:'S_S',  label:'S_S',   unit:'mg COD/L', ref: IWA_SS_REF.S_S },
+            { key:'S_O',  label:'S_O',   unit:'mg O2/L',  ref: IWA_SS_REF.S_O },
+            { key:'S_NO', label:'S_NO',  unit:'mg N/L',   ref: IWA_SS_REF.S_NO },
+            { key:'S_NH', label:'S_NH',  unit:'mg N/L',   ref: IWA_SS_REF.S_NH, limit: IWA_LIMITS.S_NH },
+            { key:'S_ND', label:'S_ND',  unit:'mg N/L',   ref: IWA_SS_REF.S_ND },
+            { key:'X_I',  label:'X_I',   unit:'mg COD/L', ref: IWA_SS_REF.X_I },
+            { key:'X_S',  label:'X_S',   unit:'mg COD/L', ref: IWA_SS_REF.X_S },
+            { key:'X_BH', label:'X_BH',  unit:'mg COD/L', ref: IWA_SS_REF.X_BH },
+            { key:'X_BA', label:'X_BA',  unit:'mg COD/L', ref: IWA_SS_REF.X_BA },
+            { key:'X_P',  label:'X_P',   unit:'mg COD/L', ref: IWA_SS_REF.X_P },
+            { key:'X_ND', label:'X_ND',  unit:'mg N/L',   ref: IWA_SS_REF.X_ND },
+            { key:'S_ALK',label:'S_ALK', unit:'mol HCO3/m3', ref: IWA_SS_REF.S_ALK },
+            { key:'TSS',  label:'TSS',   unit:'mg SS/L',  ref: IWA_SS_REF.TSS, limit: IWA_LIMITS.TSS },
+        ];
+        const aggRows = [
+            { key:'COD_total',       label:'COD total',  unit:'mg/L', ref:48.3,  limit:IWA_LIMITS.COD_total, source:'agg' },
+            { key:'TN_total',        label:'TN total',   unit:'mg/L', ref:15.6,  limit:IWA_LIMITS.TN_total,  source:'agg' },
+            { key:'BOD5',            label:'BOD5',       unit:'mg/L', ref:2.8,   limit:IWA_LIMITS.BOD5,      source:'agg' },
+            { key:'SRT_specific_days', label:'SRT esp.', unit:'dias', ref:9.14,  source:'agg' },
+            { key:'Q_effluent_m3d',  label:'Q efluente', unit:'m3/d', ref:18061, source:'agg' },
+        ];
+
+        function getCompVal(sim, key) {
+            const c = (sim.result.components || []).find(x => x.component === key);
+            return c ? c.obtained : null;
+        }
+        function getAggVal(sim, key) {
+            return sim.result.aggregates ? (sim.result.aggregates[key] ?? null) : null;
+        }
+        function getCompPassed(sim, key) {
+            const c = (sim.result.components || []).find(x => x.component === key);
+            return c ? c.passed : null;
+        }
+
+        function cellClass(val, rowDef, sim, key) {
+            if (val === null) return '';
+            // Limite IWA: alarma
+            if (rowDef.limit != null && val > rowDef.limit) return 'td-alarm';
+            // Warning: > 80% del limite
+            if (rowDef.limit != null && val > rowDef.limit * 0.8) return 'td-warn';
+            // Para componentes: verde si paso validacion IWA
+            if (rowDef.source !== 'agg') {
+                const passed = getCompPassed(sim, key);
+                if (passed === true) return 'td-good';
+            }
+            return '';
+        }
+
+        const simHeaders = sims.map((s, i) =>
+            `<th class="sim-col" style="color:${SIM_BORDERS[i % SIM_BORDERS.length]}">${escHtml(s.name)}</th>`
+        ).join('');
+
+        function buildRows(rowDefs, isAgg) {
+            return rowDefs.map(row => {
+                const refStr = row.ref != null ? row.ref.toFixed(3) : '-';
+                const cells = sims.map((s, i) => {
+                    const val = isAgg ? getAggVal(s, row.key) : getCompVal(s, row.key);
+                    if (val === null) return `<td style="color:var(--text-muted)">-</td>`;
+                    const cls = cellClass(val, row, s, row.key);
+                    const limitStr = row.limit ? ` &lt;${row.limit}` : '';
+                    return `<td class="${cls}">${val.toFixed(3)}</td>`;
+                }).join('');
+                const limitStr = row.limit ? `<span style="font-size:9px;color:var(--text-muted)"> (lim &lt;${row.limit})</span>` : '';
+                return `<tr>
+                    <td class="label-col">${row.label}${limitStr}</td>
+                    <td style="font-family:'Courier New',monospace;color:var(--border)">${refStr}</td>
+                    ${cells}
+                </tr>`;
+            }).join('');
+        }
+
+        const sepRow = `<tr><td colspan="${2 + sims.length}" style="background:var(--surface-header);height:4px;padding:0;"></td></tr>`;
+
+        return `<table class="ctable">
+            <thead><tr>
+                <th>Variable</th>
+                <th style="color:var(--border);font-style:italic">Ref IWA</th>
+                ${simHeaders}
+            </tr></thead>
+            <tbody>
+                ${buildRows(compRows, false)}
+                ${sepRow}
+                ${buildRows(aggRows, true)}
+            </tbody>
+        </table>`;
+    }
+
+    // --- Graficas comparativas Chart.js ---
+    function buildComparisonCharts(sims) {
+        const chartDefs = [
+            {
+                canvasId: 'chartNitrogen',
+                title: 'Nitrogeno (mg N/L o mg/L)',
+                vars: [
+                    { key:'S_NH', label:'S_NH', source:'comp', limit: IWA_LIMITS.S_NH },
+                    { key:'S_NO', label:'S_NO', source:'comp' },
+                    { key:'TN_total', label:'TN total', source:'agg', limit: IWA_LIMITS.TN_total },
+                    { key:'S_ND', label:'S_ND', source:'comp' },
+                ],
+            },
+            {
+                canvasId: 'chartCOD',
+                title: 'COD y DBO5 (mg/L)',
+                vars: [
+                    { key:'COD_total', label:'COD total', source:'agg', limit: IWA_LIMITS.COD_total },
+                    { key:'BOD5',      label:'BOD5',      source:'agg', limit: IWA_LIMITS.BOD5 },
+                    { key:'S_S',       label:'S_S',       source:'comp' },
+                    { key:'S_I',       label:'S_I',       source:'comp' },
+                ],
+            },
+            {
+                canvasId: 'chartSolids',
+                title: 'Solidos (mg/L)',
+                vars: [
+                    { key:'TSS',  label:'TSS',  source:'agg',  limit: IWA_LIMITS.TSS },
+                    { key:'X_BH', label:'X_BH', source:'comp' },
+                    { key:'X_BA', label:'X_BA', source:'comp' },
+                    { key:'X_P',  label:'X_P',  source:'comp' },
+                ],
+            },
+            {
+                canvasId: 'chartProcess',
+                title: 'SRT especifico (dias)',
+                vars: [
+                    { key:'SRT_specific_days', label:'SRT esp.', source:'agg' },
+                ],
+            },
+            {
+                canvasId: 'chartRemoval',
+                title: 'Rendimiento de eliminacion (%)',
+                yMax: 100,
+                vars: [
+                    { key:'removal_COD_pct',  label:'DQO',    source:'agg' },
+                    { key:'removal_TN_pct',   label:'N total', source:'agg' },
+                    { key:'removal_BOD5_pct', label:'DBO5',   source:'agg' },
+                    { key:'removal_TSS_pct',  label:'SST',    source:'agg' },
+                ],
+            },
+        ];
+
+        function getVal(sim, varDef) {
+            if (varDef.source === 'agg') {
+                const v = (sim.result.aggregates || {})[varDef.key];
+                return (v != null) ? v : null;
+            }
+            const c = (sim.result.components || []).find(x => x.component === varDef.key);
+            return c ? c.obtained : null;
+        }
+
+        const commonOptions = (title) => ({
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#fafafa',
+                        font: { family: 'Open Sans', size: 11 },
+                        padding: 12,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#2c3336',
+                    titleColor: '#9cc2e4',
+                    bodyColor: '#fafafa',
+                    borderColor: '#5e686c',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: ctx => {
+                            const v = ctx.parsed.y;
+                            return ` ${ctx.dataset.label}: ${v != null ? v.toFixed(3) : 'N/A'}`;
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: title,
+                    color: '#fafafa',
+                    font: { family: 'Open Sans', size: 13, weight: '600' },
+                    padding: { bottom: 12 },
+                },
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#fafafa', font: { family: 'Open Sans', size: 11 } },
+                    grid: { color: 'rgba(94,104,108,0.25)' },
+                },
+                y: {
+                    ticks: { color: '#9cc2e4', font: { family: 'Courier New', size: 11 } },
+                    grid: { color: 'rgba(94,104,108,0.25)' },
+                    beginAtZero: true,
+                },
+            },
+        });
+
+        chartDefs.forEach((def, ci) => {
+            const canvas = document.getElementById(def.canvasId);
+            if (!canvas) return;
+
+            const labels = def.vars.map(v => v.label);
+
+            // Dataset por simulacion con color por alarma
+            const simDatasets = sims.map((sim, idx) => {
+                const data = def.vars.map(v => getVal(sim, v));
+                const bgColors = def.vars.map((v, vi) => {
+                    const val = data[vi];
+                    if (val != null && v.limit != null && val > v.limit) {
+                        return 'rgba(227,114,114,0.85)'; // --red (alarma)
+                    }
+                    return SIM_COLORS_FILL[idx % SIM_COLORS_FILL.length];
+                });
+                const bdColors = def.vars.map((v, vi) => {
+                    const val = data[vi];
+                    if (val != null && v.limit != null && val > v.limit) return '#e37272';
+                    return SIM_BORDERS[idx % SIM_BORDERS.length];
+                });
+                return {
+                    label: sim.name,
+                    data,
+                    backgroundColor: bgColors,
+                    borderColor: bdColors,
+                    borderWidth: 1,
+                };
+            });
+
+            // Dataset de referencia IWA (linea gris discontinua)
+            const refData = def.vars.map(v => {
+                if (v.source === 'agg') {
+                    const refs = { COD_total:48.3, TN_total:15.6, BOD5:2.8,
+                                   TSS:13.0, SRT_specific_days:9.14, Q_effluent_m3d:18061,
+                                   removal_COD_pct:87.3, removal_TN_pct:58.7,
+                                   removal_BOD5_pct:94.2, removal_TSS_pct:97.1 };
+                    return refs[v.key] ?? null;
+                }
+                return IWA_SS_REF[v.key] ?? null;
+            });
+
+            const refDataset = {
+                label: 'Ref IWA',
+                type: 'line',
+                data: refData,
+                borderColor: '#5e686c',
+                borderWidth: 1.5,
+                borderDash: [5, 4],
+                pointBackgroundColor: '#5e686c',
+                pointBorderColor: '#5e686c',
+                pointRadius: 4,
+                backgroundColor: 'transparent',
+                tension: 0,
+                spanGaps: true,
+                order: 0,
+            };
+
+            const ctx = canvas.getContext('2d');
+            const opts = commonOptions(def.title);
+            if (def.yMax != null) opts.scales.y.max = def.yMax;
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [refDataset, ...simDatasets] },
+                options: opts,
+            });
+            _chartInstances.push(chart);
+        });
+    }
+
+    // --- Get default value ---
+    function defVal(key) {
+        const saved = loadSavedParams();
+        if (saved && saved[key] !== undefined && saved[key] !== null) return saved[key];
+        if (plantDefaults[key]) return plantDefaults[key].value;
+        const hc = {Q:18446, COD_total:381.19, TKN:51.35, TSS_inf:211.27, V_anoxic:1000, V_aerobic:1333,
+            Clarifier_area:1500, Clarifier_height:4, Q_RAS:18446, Q_WAS:385, SRT_target:9.14, Temperature:20,
+            DO_O1:1.72, DO_O2:2.43, DO_O3:0.49, DOsat:8.0, Q_intr:55338,
+            KLa_O1:240, KLa_O2:240, KLa_O3:84};
+        return hc[key] || '';
+    }
+
+    function defSludgeMode() {
+        const saved = loadSavedParams();
+        return (saved && saved.sludge_control) || 'WAS';
+    }
+
+    function defAerationMode() {
+        const saved = loadSavedParams();
+        return (saved && saved.aeration_control) || 'DO';
+    }
+
+    // --- Endpoint selection ---
+    function selectEndpoint(ep) {
+        currentEndpoint = ep;
+        document.querySelectorAll('.endpoint-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + ep).classList.add('active');
+
+        const panel = document.getElementById('paramsPanel');
+        panel.style.display = 'block';
+
+        const configs = {
+            health: { params: false, label: 'Verificar estado de la API' },
+            reference: { params: false, label: 'Obtener valores referencia IWA' },
+            simulate: { params: 'simulate', label: 'Ejecutar simulacion BSM1' },
+            latest: { params: false, label: 'Ver ultimo resultado' },
+            validate: { params: 'validate', label: 'Validar valores contra IWA' },
+        };
+
+        const cfg = configs[ep];
+        let html = '';
+
+        if (cfg.params === 'simulate') {
+            sludgeMode = defSludgeMode();
+            aerationMode = defAerationMode();
+            html = buildSimulateForm();
+        } else if (cfg.params === 'validate') {
+            html = `
+                <div class="param-group">
+                    <label>Valores (JSON)</label>
+                    <textarea id="p-values">{
+  "S_NH": 1.8,
+  "S_NO": 10.5,
+  "S_S": 0.9,
+  "TSS": 12.5,
+  "X_BH": 9.8,
+  "X_BA": 0.57
+}</textarea>
+                </div>
+                <div class="param-group">
+                    <label>Tolerancia</label>
+                    <input type="number" id="p-vtol" value="0.05" min="0.01" max="0.5" step="0.01">
+                </div>
+            `;
+        }
+
+        html += `<button class="run-btn" id="runBtn" onclick="runEndpoint()">${cfg.label}</button>`;
+        if (cfg.params === 'simulate') {
+            html += `<button class="reset-btn" onclick="resetDefaults()">Resetear a BSM1 defaults</button>`;
+            html += `<div id="preCheckWarnings"></div>`;
+            html += `
+<!-- Excel import/export -->
+<div style="margin-top:12px; padding-top:12px; border-top:1px solid #5e686c;">
+  <a id="btn-download-template" href="/export/excel-template"
+     style="display:block; width:100%; box-sizing:border-box; padding:8px 12px;
+            background:#444e54; border:1px solid #5e686c; color:#fafafa;
+            border-radius:4px; text-align:center; text-decoration:none;
+            font-family:'Open Sans',sans-serif; font-size:0.85em; cursor:pointer;">
+    Descargar plantilla Excel
+  </a>
+  <div style="margin-top:8px;">
+    <label style="color:#fafafa; font-family:'Open Sans',sans-serif; font-size:0.8em;">
+      Cargar Excel con par&aacute;metros:
+    </label>
+    <div style="display:flex; gap:6px; margin-top:4px;">
+      <input type="file" id="excel-file" accept=".xlsx"
+             style="flex:1; min-width:0; background:#2c3336; color:#fafafa;
+                    border:1px solid #5e686c; padding:4px 6px; border-radius:4px;
+                    font-family:'Open Sans',sans-serif; font-size:0.8em;">
+      <button onclick="simulateFromExcel()"
+              style="background:#444e54; border:1px solid #5e686c; color:#fafafa;
+                     padding:4px 10px; border-radius:4px; cursor:pointer; white-space:nowrap;
+                     font-family:'Open Sans',sans-serif; font-size:0.8em;">
+        Cargar y simular
+      </button>
+    </div>
+  </div>
+</div>`;
+        }
+        panel.innerHTML = html;
+
+        if (cfg.params === 'simulate') {
+            panel.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('change', () => { saveParams(); validateAllInputs(); runPreCheck(); });
+            });
+            validateAllInputs();
+            runPreCheck();
+        }
+    }
+
+    function buildSimulateForm() {
+        return `
+        <div class="param-group" style="margin-bottom:8px;">
+            <label>Nombre de simulacion</label>
+            <input type="text" id="p-sim-name" maxlength="40"
+                   placeholder="Ej: T=15 SRT=20d"
+                   class="sim-name-input">
+            <div class="param-hint">Etiqueta para el historial (auto si se deja vacio)</div>
+        </div>
+
+        ${section('Simulacion', 'sim', `
+            <div class="param-group">
+                <label>Dias de simulacion</label>
+                <input type="number" id="p-tdays" value="200" min="50" max="1000">
+            </div>
+            <div class="param-row">
+                <div class="param-group">
+                    <label>Metodo ODE</label>
+                    <select id="p-method">
+                        <option value="BDF" selected>BDF</option>
+                        <option value="Radau">Radau</option>
+                    </select>
+                </div>
+                <div class="param-group">
+                    <label>Tolerancia</label>
+                    <input type="number" id="p-tol" value="0.05" min="0.01" max="0.5" step="0.01">
+                </div>
+            </div>
+        `)}
+
+        ${section('Influente', 'inf', `
+            <div class="param-row">
+                <div class="param-group">
+                    <label>Q (m3/d)</label>
+                    <input type="number" id="p-Q" value="${defVal('Q')}" min="1000" max="200000" step="100">
+                </div>
+                <div class="param-group">
+                    <label>COD total (mg/L)</label>
+                    <input type="number" id="p-COD_total" value="${defVal('COD_total')}" min="50" max="2000" step="1">
+                </div>
+            </div>
+            <div class="param-row">
+                <div class="param-group">
+                    <label>TKN (mg N/L)</label>
+                    <input type="number" id="p-TKN" value="${defVal('TKN')}" min="10" max="300" step="0.1">
+                </div>
+                <div class="param-group">
+                    <label>TSS influente (mg/L)</label>
+                    <input type="number" id="p-TSS_inf" value="${defVal('TSS_inf')}" min="20" max="1500" step="1">
+                </div>
+            </div>
+        `)}
+
+        ${section('Geometria', 'geo', `
+            <div class="param-row">
+                <div class="param-group">
+                    <label>V anoxico (m3)</label>
+                    <input type="number" id="p-V_anoxic" value="${defVal('V_anoxic')}" min="100" max="20000" step="50">
+                    <div class="param-hint">x2 reactores (A1, A2)</div>
+                </div>
+                <div class="param-group">
+                    <label>V aerobico (m3)</label>
+                    <input type="number" id="p-V_aerobic" value="${defVal('V_aerobic')}" min="100" max="20000" step="50">
+                    <div class="param-hint">x3 reactores (O1, O2, O3)</div>
+                </div>
+            </div>
+            <div class="param-row">
+                <div class="param-group">
+                    <label>Area decantador (m2)</label>
+                    <input type="number" id="p-Clarifier_area" value="${defVal('Clarifier_area')}" min="100" max="10000" step="50">
+                </div>
+                <div class="param-group">
+                    <label>Altura decantador (m)</label>
+                    <input type="number" id="p-Clarifier_height" value="${defVal('Clarifier_height')}" min="1" max="10" step="0.5">
+                </div>
+            </div>
+            <div class="info-row"><span>Secuencia reactores</span><span class="info-val">A1-A2-O1-O2-O3-C1 (fija)</span></div>
+            <div class="info-row"><span>Capas decantador</span><span class="info-val">10 (feed layer 5)</span></div>
+        `)}
+
+        ${section('Operacion', 'op', `
+            <div class="param-row">
+                <div class="param-group">
+                    <label>Q RAS (m3/d)</label>
+                    <input type="number" id="p-Q_RAS" value="${defVal('Q_RAS')}" min="0" max="200000" step="100">
+                </div>
+                <div class="param-group">
+                    <label>Q interna (m3/d)</label>
+                    <input type="number" id="p-Q_intr" value="${defVal('Q_intr')}" min="0" max="300000" step="100">
+                </div>
+            </div>
+
+            <label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; display:block;">Control de lodos</label>
+            <div class="radio-group">
+                <div class="radio-option ${sludgeMode==='WAS'?'active':''}" onclick="setSludgeMode('WAS', this)">WAS (m3/d)</div>
+                <div class="radio-option ${sludgeMode==='SRT'?'active':''}" onclick="setSludgeMode('SRT', this)">SRT (dias)</div>
+            </div>
+            <div class="param-row">
+                <div class="param-group">
+                    <label>Q WAS (m3/d)</label>
+                    <input type="number" id="p-Q_WAS" value="${defVal('Q_WAS')}" min="10" max="5000" step="5"
+                        ${sludgeMode==='SRT'?'disabled':''}>
+                </div>
+                <div class="param-group">
+                    <label>SRT objetivo (dias)</label>
+                    <input type="number" id="p-SRT_target" value="${defVal('SRT_target')}" min="1" max="40" step="0.5"
+                        ${sludgeMode==='WAS'?'disabled':''}>
+                </div>
+            </div>
+            <div id="wasCalcInfo" style="display:none;"></div>
+
+            <div class="param-group">
+                <label>Temperatura (C)</label>
+                <input type="number" id="p-Temperature" value="${defVal('Temperature')}" min="5" max="35" step="0.5">
+            </div>
+
+            <label style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:8px; margin-bottom:4px; display:block;">Control de aireacion (O1, O2, O3)</label>
+            <div class="radio-group" id="aer-radio-group">
+                <div class="radio-option ${aerationMode==='DO'?'active':''}" onclick="setAerationMode('DO', this)">OD Consigna + PI</div>
+                <div class="radio-option ${aerationMode==='KLa'?'active':''}" onclick="setAerationMode('KLa', this)">KLa directo</div>
+            </div>
+            <div id="aer-do-inputs" style="${aerationMode==='KLa'?'display:none':''}">
+                <div class="param-hint" style="margin-bottom:6px;">Controlador PI ajusta KLa para alcanzar la consigna. Valor 0 = sin aireacion.</div>
+                <div class="param-row">
+                    <div class="param-group">
+                        <label>OD O1 (mg/L)</label>
+                        <input type="number" id="p-DO_O1" value="${defVal('DO_O1')}" min="0" max="7.0" step="0.1">
+                    </div>
+                    <div class="param-group">
+                        <label>OD O2 (mg/L)</label>
+                        <input type="number" id="p-DO_O2" value="${defVal('DO_O2')}" min="0" max="7.0" step="0.1">
+                    </div>
+                </div>
+                <div class="param-group">
+                    <label>OD O3 (mg/L)</label>
+                    <input type="number" id="p-DO_O3" value="${defVal('DO_O3')}" min="0" max="7.0" step="0.1">
+                </div>
+            </div>
+            <div id="aer-kla-inputs" style="${aerationMode==='DO'?'display:none':''}">
+                <div class="param-hint" style="margin-bottom:6px;">KLa aplicado directamente, sin controlador PI. Valor 0 = sin aireacion (reactor anoxic).</div>
+                <div class="param-row">
+                    <div class="param-group">
+                        <label>KLa O1 (1/d)</label>
+                        <input type="number" id="p-KLa_O1" value="${defVal('KLa_O1')}" min="0" max="1000" step="10">
+                    </div>
+                    <div class="param-group">
+                        <label>KLa O2 (1/d)</label>
+                        <input type="number" id="p-KLa_O2" value="${defVal('KLa_O2')}" min="0" max="1000" step="10">
+                    </div>
+                </div>
+                <div class="param-group">
+                    <label>KLa O3 (1/d)</label>
+                    <input type="number" id="p-KLa_O3" value="${defVal('KLa_O3')}" min="0" max="1000" step="10">
+                </div>
+            </div>
+            <div class="param-group" style="margin-top:6px;">
+                <label>OD saturacion (mg/L)</label>
+                <input type="number" id="p-DOsat" value="${defVal('DOsat')}" min="6.0" max="14.0" step="0.1">
+                <div class="param-hint">8.0 a 20C, 1 atm</div>
+            </div>
+            <div id="klaCalcInfo"></div>
+        `)}
+
+        ${section('Referencia (solo lectura)', 'ref', `
+            <div class="info-row"><span>MLSS referencia</span><span class="info-val">~3,000 mg/L</span></div>
+            <div class="info-row"><span>TSS underflow ref</span><span class="info-val">6,394 mg SS/L</span></div>
+            <div class="info-row"><span>SRT trad. ref</span><span class="info-val">7.32 dias</span></div>
+            <div class="info-row"><span>SRT spec. ref</span><span class="info-val">9.14 dias</span></div>
+            <div class="info-row"><span>Q efluente ref</span><span class="info-val">18,061 m3/d</span></div>
+        `, true)}
+        `;
+    }
+
+    function section(title, id, content, collapsed = false) {
+        return `
+            <div class="section-header ${collapsed?'collapsed':''}" onclick="toggleSection('sec-${id}', this)">
+                <h3>${title}</h3>
+                <span class="arrow">&#9660;</span>
+            </div>
+            <div id="sec-${id}" class="section-body ${collapsed?'collapsed':''}">
+                ${content}
+            </div>
+        `;
+    }
+
+    function toggleSection(id, header) {
+        const body = document.getElementById(id);
+        body.classList.toggle('collapsed');
+        header.classList.toggle('collapsed');
+    }
+
+    function setSludgeMode(mode, el) {
+        sludgeMode = mode;
+        // Scope the active-class reset to just this radio group
+        if (el) el.closest('.radio-group').querySelectorAll('.radio-option').forEach(e => e.classList.remove('active'));
+        if (el) el.classList.add('active');
+
+        const wasInput = document.getElementById('p-Q_WAS');
+        const srtInput = document.getElementById('p-SRT_target');
+
+        if (mode === 'WAS') {
+            wasInput.disabled = false;
+            srtInput.disabled = true;
+            document.getElementById('wasCalcInfo').style.display = 'none';
+        } else {
+            wasInput.disabled = true;
+            srtInput.disabled = false;
+            runPreCheck();
+        }
+        saveParams();
+    }
+
+    function setAerationMode(mode, el) {
+        aerationMode = mode;
+        if (el) el.closest('.radio-group').querySelectorAll('.radio-option').forEach(e => e.classList.remove('active'));
+        if (el) el.classList.add('active');
+
+        document.getElementById('aer-do-inputs').style.display = mode === 'DO' ? '' : 'none';
+        document.getElementById('aer-kla-inputs').style.display = mode === 'KLa' ? '' : 'none';
+
+        // Clear KLa info box: it only shows DO->KLa calculation
+        if (mode === 'KLa') {
+            const klaInfo = document.getElementById('klaCalcInfo');
+            if (klaInfo) klaInfo.innerHTML = '';
+        }
+        saveParams();
+        validateAllInputs();
+    }
+
+    async function runPreCheck() {
+        const plant = collectPlantParams();
+        if (!plant) return;
+        try {
+            const r = await fetch(API + '/simulate/pre-check', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(plant)
+            });
+            const d = await r.json();
+            const info = document.getElementById('wasCalcInfo');
+            if (d.Q_WAS_calculated !== null && d.Q_WAS_calculated !== undefined) {
+                document.getElementById('p-Q_WAS').value = d.Q_WAS_calculated;
+                info.innerHTML = `<div class="info-row"><span>WAS calculado</span><span class="info-val">${d.Q_WAS_calculated} m3/d</span></div>`;
+                info.style.display = 'block';
+            }
+            const klaInfo = document.getElementById('klaCalcInfo');
+            if (klaInfo && d.KLa_O1 !== null) {
+                klaInfo.innerHTML = `
+                    <div class="info-row"><span>KLa calculado O1</span><span class="info-val">${d.KLa_O1} 1/d</span></div>
+                    <div class="info-row"><span>KLa calculado O2</span><span class="info-val">${d.KLa_O2} 1/d</span></div>
+                    <div class="info-row"><span>KLa calculado O3</span><span class="info-val">${d.KLa_O3} 1/d</span></div>`;
+            }
+            const warnBox = document.getElementById('preCheckWarnings');
+            if (d.warnings && d.warnings.length > 0) {
+                warnBox.innerHTML = `<div class="warnings-box"><strong>Avisos:</strong><ul>${d.warnings.map(w => '<li>'+w+'</li>').join('')}</ul></div>`;
+            } else {
+                warnBox.innerHTML = '';
+            }
+        } catch (e) {
+            // silently fail pre-check
+        }
+    }
+
+    // Reconstruye un objeto plant desde las claves _param_* de aggregates.
+    // Usado para guardar en historial las simulaciones cargadas desde Excel,
+    // donde el formulario no refleja los valores reales del archivo subido.
+    function buildPlantFromAggregates(aggregates) {
+        const plant = {};
+        for (const [k, v] of Object.entries(aggregates)) {
+            if (k.startsWith('_param_')) {
+                const bare = k.slice(7); // '_param_Q' -> 'Q'
+                plant[bare] = v;
+                plant[k] = v; // mantener clave prefijada para PARAM_LABELS que usan _param_*
+            }
+        }
+        return plant;
+    }
+
+    function collectPlantParams() {
+        const el = id => document.getElementById(id);
+        if (!el('p-Q')) return null;
+        const getVal = (id, fallback) => { const e = el(id); return e ? parseFloat(e.value) : fallback; };
+        return {
+            Q: parseFloat(el('p-Q').value),
+            COD_total: parseFloat(el('p-COD_total').value),
+            TKN: parseFloat(el('p-TKN').value),
+            TSS_inf: parseFloat(el('p-TSS_inf').value),
+            V_anoxic: parseFloat(el('p-V_anoxic').value),
+            V_aerobic: parseFloat(el('p-V_aerobic').value),
+            Clarifier_area: parseFloat(el('p-Clarifier_area').value),
+            Clarifier_height: parseFloat(el('p-Clarifier_height').value),
+            Q_RAS: parseFloat(el('p-Q_RAS').value),
+            sludge_control: sludgeMode,
+            Q_WAS: sludgeMode === 'WAS' ? parseFloat(el('p-Q_WAS').value) : null,
+            SRT_target: sludgeMode === 'SRT' ? parseFloat(el('p-SRT_target').value) : null,
+            Temperature: parseFloat(el('p-Temperature').value),
+            aeration_control: aerationMode,
+            DO_O1: getVal('p-DO_O1', 1.72),
+            DO_O2: getVal('p-DO_O2', 2.43),
+            DO_O3: getVal('p-DO_O3', 0.49),
+            KLa_O1: aerationMode === 'KLa' ? getVal('p-KLa_O1', 240) : null,
+            KLa_O2: aerationMode === 'KLa' ? getVal('p-KLa_O2', 240) : null,
+            KLa_O3: aerationMode === 'KLa' ? getVal('p-KLa_O3', 84) : null,
+            DOsat: parseFloat(el('p-DOsat').value),
+            Q_intr: parseFloat(el('p-Q_intr').value),
+        };
+    }
+
+    function validateAllInputs() {
+        const aeroRanges = aerationMode === 'DO'
+            ? { 'p-DO_O1': [0, 7.0], 'p-DO_O2': [0, 7.0], 'p-DO_O3': [0, 7.0] }
+            : { 'p-KLa_O1': [0, 1000], 'p-KLa_O2': [0, 1000], 'p-KLa_O3': [0, 1000] };
+        const ranges = {
+            'p-Q': [1000, 200000], 'p-COD_total': [50, 2000], 'p-TKN': [10, 300],
+            'p-TSS_inf': [20, 1500], 'p-V_anoxic': [100, 20000], 'p-V_aerobic': [100, 20000],
+            'p-Clarifier_area': [100, 10000], 'p-Clarifier_height': [1, 10],
+            'p-Q_RAS': [0, 200000], 'p-Q_WAS': [10, 5000],
+            'p-SRT_target': [1, 40], 'p-Temperature': [5, 35],
+            'p-DOsat': [6.0, 14.0], 'p-Q_intr': [0, 300000],
+            ...aeroRanges,
+        };
+        let allValid = true;
+        for (const [id, [mn, mx]] of Object.entries(ranges)) {
+            const el = document.getElementById(id);
+            if (!el || el.disabled) continue;
+            const v = parseFloat(el.value);
+            if (isNaN(v) || v < mn || v > mx) {
+                el.classList.add('invalid');
+                allValid = false;
+            } else {
+                el.classList.remove('invalid');
+            }
+        }
+        const btn = document.getElementById('runBtn');
+        if (btn && currentEndpoint === 'simulate') btn.disabled = !allValid;
+    }
+
+    async function simulateFromExcel() {
+        const fileInput = document.getElementById('excel-file');
+        if (!fileInput || !fileInput.files.length) {
+            alert('Selecciona un archivo .xlsx primero.');
+            return;
+        }
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        const resultArea = document.getElementById('resultArea');
+        const runBtn = document.getElementById('runBtn');
+        if (runBtn) { runBtn.disabled = true; runBtn.innerHTML = '<span class="spinner"></span>Ejecutando Excel...'; }
+        try {
+            const resp = await fetch(API + '/simulate/from-excel', { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || 'Error en la simulacion');
+            resultArea.innerHTML = renderResult('simulate', data);
+            // Guardar en historial con plant reconstruido desde _param_* del resultado
+            const nameEl = document.getElementById('p-sim-name');
+            let simName = nameEl ? nameEl.value.trim() : '';
+            if (!simName) simName = 'Excel ' + (getHistory().length + 1);
+            saveToHistory(simName, data, buildPlantFromAggregates(data.aggregates || {}));
+            renderHistory();
+            if (nameEl) nameEl.value = '';
+        } catch (e) {
+            if (resultArea) resultArea.innerHTML = `<div class="error-box">Error: ${e.message}</div>`;
+        } finally {
+            if (runBtn) { runBtn.disabled = false; runBtn.textContent = 'Simular'; }
+        }
+    }
+
+    function resetDefaults() {
+        clearSavedParams();
+        sludgeMode = 'WAS';
+        aerationMode = 'DO';
+        selectEndpoint('simulate');
+    }
+
+    // --- Run endpoint ---
+    async function runEndpoint() {
+        const btn = document.getElementById('runBtn');
+        const resultArea = document.getElementById('resultArea');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Ejecutando...';
+
+        try {
+            let response;
+            switch (currentEndpoint) {
+                case 'health':
+                    response = await fetch(API + '/health');
+                    break;
+                case 'reference':
+                    response = await fetch(API + '/reference/iwa');
+                    break;
+                case 'simulate': {
+                    _lastPlant = collectPlantParams();
+                    const body = {
+                        t_days: parseInt(document.getElementById('p-tdays').value),
+                        method: document.getElementById('p-method').value,
+                        tolerance: parseFloat(document.getElementById('p-tol').value),
+                        plant: _lastPlant,
+                    };
+                    response = await fetch(API + '/simulate/steady-state', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(body)
+                    });
+                    break;
+                }
+                case 'latest':
+                    response = await fetch(API + '/results/latest');
+                    break;
+                case 'validate': {
+                    const valuesText = document.getElementById('p-values').value;
+                    let values;
+                    try { values = JSON.parse(valuesText); }
+                    catch(e) { throw new Error('JSON invalido: ' + e.message); }
+                    response = await fetch(API + '/validate', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            values: values,
+                            tolerance: parseFloat(document.getElementById('p-vtol').value),
+                        })
+                    });
+                    break;
+                }
+            }
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                resultArea.innerHTML = `<div class="error-box">Error ${response.status}: ${data.detail || JSON.stringify(data)}</div>
+                    <div class="json-viewer">${JSON.stringify(data, null, 2)}</div>`;
+                return;
+            }
+
+            resultArea.innerHTML = renderResult(currentEndpoint, data);
+
+            // Guardar en historial si es una simulacion exitosa
+            if (currentEndpoint === 'simulate' && _lastPlant) {
+                const nameEl = document.getElementById('p-sim-name');
+                let simName = nameEl ? nameEl.value.trim() : '';
+                if (!simName) {
+                    simName = 'Sim ' + (getHistory().length + 1);
+                }
+                saveToHistory(simName, data, _lastPlant);
+                renderHistory();
+                // Limpiar campo nombre para la proxima simulacion
+                if (nameEl) nameEl.value = '';
+            }
+
+        } catch (e) {
+            resultArea.innerHTML = `<div class="error-box">${e.message}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = {
+                health: 'Verificar estado de la API',
+                reference: 'Obtener valores referencia IWA',
+                simulate: 'Ejecutar simulacion BSM1',
+                latest: 'Ver ultimo resultado',
+                validate: 'Validar valores contra IWA',
+            }[currentEndpoint];
+            if (currentEndpoint === 'simulate') validateAllInputs();
+        }
+    }
+
+    // --- Render results ---
+    function renderResult(ep, data) {
+        switch (ep) {
+            case 'health': return renderHealth(data);
+            case 'reference': return renderReference(data);
+            case 'simulate':
+            case 'latest': return renderSimulation(data);
+            case 'validate': return renderValidation(data);
+        }
+    }
+
+    function renderHealth(d) {
+        return `
+            <div class="result-header"><h2>Health Check</h2></div>
+            <div class="status-bar">
+                <div class="status-item"><div class="value" style="color:var(--green)">${d.status.toUpperCase()}</div><div class="label">Estado</div></div>
+                <div class="status-item"><div class="value">${d.qsdsan_version}</div><div class="label">QSDsan</div></div>
+                <div class="status-item"><div class="value">${d.python_version}</div><div class="label">Python</div></div>
+            </div>
+            <h3 style="margin-bottom:8px; font-size:13px; color:var(--text-muted)">JSON Response</h3>
+            <div class="json-viewer">${syntaxHL(d)}</div>
+        `;
+    }
+
+    function renderReference(d) {
+        let ssRows = Object.entries(d.steady_state).map(([k, v]) =>
+            `<tr><td>${k}</td><td>${v}</td><td>${unitFor(k)}</td></tr>`
+        ).join('');
+        ssRows += `<tr><td>TSS</td><td>${d.steady_state_tss}</td><td>mg SS/L</td></tr>`;
+
+        let dynRows = Object.entries(d.dynamic).map(([k, v]) =>
+            `<tr><td>${k}</td><td>${v}</td><td>${d.limits[k] ? '< '+d.limits[k] : '-'}</td></tr>`
+        ).join('');
+
+        return `
+            <div class="result-header"><h2>Valores Referencia IWA (Jeppsson, 2008)</h2></div>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab(this,'tab-ss')">Estado Estacionario</button>
+                <button class="tab-btn" onclick="showTab(this,'tab-dyn')">Dinamico</button>
+                <button class="tab-btn" onclick="showTab(this,'tab-json')">JSON</button>
+            </div>
+            <div id="tab-ss">
+                <div class="status-bar">
+                    <div class="status-item"><div class="value">${d.steady_state_srt_trad}</div><div class="label">SRT trad (dias)</div></div>
+                    <div class="status-item"><div class="value">${d.steady_state_srt_spec}</div><div class="label">SRT spec (dias)</div></div>
+                    <div class="status-item"><div class="value">${d.tolerance * 100}%</div><div class="label">Tolerancia</div></div>
+                </div>
+                <table class="comp-table">
+                    <tr><th>Componente</th><th>Valor referencia</th><th>Unidad</th></tr>
+                    ${ssRows}
+                </table>
+            </div>
+            <div id="tab-dyn" style="display:none">
+                <table class="comp-table">
+                    <tr><th>Parametro</th><th>Referencia</th><th>Limite IWA</th></tr>
+                    ${dynRows}
+                </table>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:8px;">
+                    Nota: S_NH > 4 mg/L es una violacion ESPERADA en BSM1 lazo abierto.
+                </p>
+            </div>
+            <div id="tab-json" style="display:none">
+                <div class="json-viewer">${syntaxHL(d)}</div>
+            </div>
+        `;
+    }
+
+    function renderSimulation(d) {
+        const allPass = d.all_passed;
+        const statusColor = allPass ? 'var(--green)' : 'var(--red)';
+
+        let rows = d.components.map(c => `
+            <tr>
+                <td>${c.component}</td>
+                <td>${c.obtained.toFixed(4)}</td>
+                <td>${c.reference}</td>
+                <td style="color:${Math.abs(c.error_pct) < 2 ? 'var(--green)' : Math.abs(c.error_pct) < 5 ? 'var(--yellow)' : 'var(--red)'}">
+                    ${c.error_pct >= 0 ? '+' : ''}${c.error_pct.toFixed(3)}%
+                </td>
+                <td>${c.unit}</td>
+                <td><span class="pass-tag ${c.passed ? 'tag-pass' : 'tag-fail'}">${c.passed ? 'PASS' : 'FAIL'}</span></td>
+            </tr>
+        `).join('');
+
+        const agg = d.aggregates;
+        const limits = { COD_total: 100, TN_total: 18, TSS: 30, BOD5: 10 };
+
+        const paramKeys = Object.keys(agg).filter(k => k.startsWith('_param_'));
+        let paramCard = '';
+        if (paramKeys.length > 0) {
+            const labels = {
+                _param_Q_WAS: 'Q WAS (m3/d)',
+                _param_Temperature: 'Temperatura (C)',
+                _param_KLa_O1: 'KLa O1 (1/d)',
+                _param_KLa_O2: 'KLa O2 (1/d)',
+                _param_KLa_O3: 'KLa O3 (1/d)',
+                _param_Q_intr: 'Q interna (m3/d)',
+                _param_V_anoxic: 'V anoxic (m3)',
+                _param_V_aerobic: 'V aerobic (m3)',
+            };
+            const rows = paramKeys.map(k => {
+                const val = agg[k];
+                return `<div class="info-row"><span style="color:var(--text-muted)">${labels[k]||k}</span><span class="info-val">${typeof val === 'number' ? val.toFixed(1) : val}</span></div>`;
+            }).join('');
+            paramCard = `<details style="margin-bottom:12px; background:var(--surface2); border-radius:4px; padding:8px 12px;">
+                <summary style="cursor:pointer; font-size:11px; color:var(--accent); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; list-style:none;">
+                    &#9656; Parametros aplicados (servidor)
+                </summary>
+                <div style="margin-top:8px;">${rows}</div>
+            </details>`;
+        }
+
+        let aggCards = Object.entries(agg).filter(([k,v]) => v !== null && !k.startsWith('_param_')).map(([k, v]) => {
+            const limit = limits[k];
+            const cls = limit ? (v < limit ? 'agg-ok' : 'agg-warn') : '';
+            const label = k.replace(/_/g, ' ');
+            return `<div class="agg-card ${cls}"><div class="agg-value">${typeof v === 'number' ? v.toFixed(2) : v}</div><div class="agg-label">${label}${limit ? ' (< '+limit+')' : ''}</div></div>`;
+        }).join('');
+
+        return `
+            <div class="result-header">
+                <h2>Resultado Simulacion</h2>
+                <span class="result-meta">${d.timestamp} | ${d.method_used} | ${d.compute_time_seconds}s</span>
+            </div>
+            <div class="status-bar">
+                <div class="status-item"><div class="value" style="color:${statusColor}">${d.pass_count}/${d.total_count}</div><div class="label">Componentes PASS</div></div>
+                <div class="status-item"><div class="value" style="color:${statusColor}">${allPass ? 'COMPLIANT' : 'NON-COMPLIANT'}</div><div class="label">Estado</div></div>
+                <div class="status-item"><div class="value">${d.method_used}</div><div class="label">Metodo ODE</div></div>
+                <div class="status-item"><div class="value">${d.compute_time_seconds}s</div><div class="label">Tiempo</div></div>
+            </div>
+            ${paramCard}
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab(this,'tab-comp')">Componentes</button>
+                <button class="tab-btn" onclick="showTab(this,'tab-agg')">Agregados</button>
+                <button class="tab-btn" onclick="showTab(this,'tab-chart')">Grafico</button>
+                <button class="tab-btn" onclick="showTab(this,'tab-sjson')">JSON</button>
+            </div>
+            <div id="tab-comp">
+                <table class="comp-table">
+                    <tr><th>Componente</th><th>Obtenido</th><th>Referencia IWA</th><th>Error %</th><th>Unidad</th><th>Estado</th></tr>
+                    ${rows}
+                </table>
+            </div>
+            <div id="tab-agg" style="display:none">
+                <div class="agg-grid">${aggCards}</div>
+            </div>
+            <div id="tab-chart" style="display:none">
+                ${renderBarChart(d.components)}
+            </div>
+            <div id="tab-sjson" style="display:none">
+                <div class="json-viewer">${syntaxHL(d)}</div>
+            </div>
+        `;
+    }
+
+    function renderValidation(data) {
+        const passCount = data.filter(c => c.passed).length;
+        const total = data.length;
+        const allPass = passCount === total;
+
+        let rows = data.map(c => `
+            <tr>
+                <td>${c.component}</td>
+                <td>${c.obtained.toFixed(4)}</td>
+                <td>${c.reference}</td>
+                <td style="color:${Math.abs(c.error_pct) < 5 ? 'var(--green)' : 'var(--red)'}">
+                    ${c.error_pct >= 0 ? '+' : ''}${c.error_pct.toFixed(3)}%
+                </td>
+                <td><span class="pass-tag ${c.passed ? 'tag-pass' : 'tag-fail'}">${c.passed ? 'PASS' : 'FAIL'}</span></td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="result-header"><h2>Validacion Personalizada</h2></div>
+            <div class="status-bar">
+                <div class="status-item"><div class="value" style="color:${allPass ? 'var(--green)' : 'var(--red)'}">${passCount}/${total}</div><div class="label">PASS</div></div>
+            </div>
+            <table class="comp-table">
+                <tr><th>Componente</th><th>Valor</th><th>Referencia IWA</th><th>Error %</th><th>Estado</th></tr>
+                ${rows}
+            </table>
+        `;
+    }
+
+    // --- Bar chart (pure CSS/HTML) ---
+    function renderBarChart(components) {
+        const maxErr = Math.max(...components.map(c => Math.abs(c.error_pct)), 5);
+        let bars = components.map(c => {
+            const w = Math.min(Math.abs(c.error_pct) / maxErr * 100, 100);
+            const color = Math.abs(c.error_pct) < 2 ? 'var(--green)' : Math.abs(c.error_pct) < 5 ? 'var(--yellow)' : 'var(--red)';
+            return `
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                    <span style="width:50px; font-size:11px; text-align:right; font-family:monospace; color:var(--text-muted)">${c.component}</span>
+                    <div style="flex:1; background:var(--surface2); border-radius:3px; height:18px; position:relative;">
+                        <div style="width:${w}%; background:${color}; height:100%; border-radius:3px; transition:width 0.5s;"></div>
+                    </div>
+                    <span style="width:60px; font-size:11px; font-family:monospace; color:${color}">${c.error_pct >= 0 ? '+' : ''}${c.error_pct.toFixed(2)}%</span>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div style="padding:12px;">
+                <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Error % respecto a referencia IWA (tolerancia +/-5%)</p>
+                ${bars}
+            </div>
+        `;
+    }
+
+    // --- Utilities ---
+    function showTab(btn, tabId) {
+        const parent = btn.parentElement;
+        parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const container = parent.parentElement;
+        container.querySelectorAll(':scope > div[id^="tab-"]').forEach(d => d.style.display = 'none');
+        document.getElementById(tabId).style.display = 'block';
+    }
+
+    function syntaxHL(obj) {
+        return JSON.stringify(obj, null, 2)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"([^"]+)":/g, '<span style="color:var(--accent)">"$1"</span>:')
+            .replace(/: "([^"]*)"/g, ': <span style="color:var(--green)">"$1"</span>')
+            .replace(/: (\d+\.?\d*)/g, ': <span style="color:var(--yellow)">$1</span>')
+            .replace(/: (true)/g, ': <span style="color:var(--green)">$1</span>')
+            .replace(/: (false)/g, ': <span style="color:var(--red)">$1</span>')
+            .replace(/: (null)/g, ': <span style="color:var(--text-muted)">$1</span>');
+    }
+
+    function unitFor(comp) {
+        const u = {
+            S_I:'mg COD/L', S_S:'mg COD/L', X_I:'mg COD/L', X_S:'mg COD/L',
+            X_BH:'mg COD/L', X_BA:'mg COD/L', X_P:'mg COD/L', S_O:'mg O2/L',
+            S_NO:'mg N/L', S_NH:'mg N/L', S_ND:'mg N/L', X_ND:'mg N/L',
+            S_ALK:'mol HCO3/m3', TSS:'mg SS/L'
+        };
+        return u[comp] || 'mg/L';
+    }
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;');
+    }
+
+    // --- Inicializacion ---
+    renderHistory();
+    </script>
+</body>
+</html>

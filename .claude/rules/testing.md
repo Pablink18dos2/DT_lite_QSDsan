@@ -1,9 +1,12 @@
 # Testing Rules
 
 ## Framework
-- No pytest or unittest framework. Validation is done by **comparison against
-  IWA reference values** (Dr. Ulf Jeppsson, Lund University, 2008).
-- Reference values are hardcoded in the simulation scripts.
+- **pytest** configurado en `pyproject.toml` (testpaths = ["tests"]).
+- Ejecutar: `python -m pytest tests/ -v`
+- Tests rapidos (sin simulacion): `python -m pytest tests/ -m "not slow"`
+- Tests de tendencias (simulacion real): `python -m pytest tests/test_trends.py -v`
+- Adicionalmente, **validacion IWA** por comparacion contra valores de referencia
+  (Dr. Ulf Jeppsson, Lund University, 2008) hardcodeados en `app/config.py`.
 
 ## Steady-State Validation
 - Tolerance: +/- 5% for all checks
@@ -29,6 +32,10 @@
 - Run the full simulation (200 days) and verify 14/14 PASS
 - Results must be saved to both CSV and TXT report files
 
-## Results Files
-- `resultados_bsm1_ss_componentes.csv` - Tabulated component data
-- `RESULTADOS_VALIDACION_BSM1.txt` - Full validation report with PASS/FAIL
+## Suite de tests
+
+| Fichero | Contenido | Velocidad |
+|---------|-----------|-----------|
+| `tests/test_api.py` | Tests de endpoints FastAPI (TestClient) | Rapido |
+| `tests/test_engine.py` | Tests unitarios del motor (validate_value, do_to_kla, etc.) | Rapido |
+| `tests/test_trends.py` | 16 tests de tendencias/sensibilidad (@slow) | ~90 seg |
